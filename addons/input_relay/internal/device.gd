@@ -36,5 +36,7 @@ func _init(device_id: int, device_name: String) -> void:
 		pass
 	elif "nintendo" in lname || "switch" in lname:
 		pass
+	elif "keyboard" in lname:
+		pass
 	else:
 		pass

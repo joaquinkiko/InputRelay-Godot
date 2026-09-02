@@ -13,6 +13,7 @@ func _ready() -> void:
 	Input.joy_connection_changed.connect(_joy_connection_changed)
 	for id in Input.get_connected_joypads():
 		_register_device(id)
+	devices.append(InputRelayDevice.new(-1, "Keyboard & Mouse"))
 
 func _joy_connection_changed(device_id: int, connected: bool) -> void:
 	if connected:
