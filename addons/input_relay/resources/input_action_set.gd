@@ -8,3 +8,6 @@ class_name InputActionSet extends Resource
 ## These flags control how the mouse should appear when this set is active for
 ## a mouse and keyboard player.
 var mouse_flags: int = 0
+
+## Available actions for this set, sorted by name
+@export var actions: Dictionary[StringName, InputActionDef]
