@@ -15,6 +15,8 @@ var name: String
 var feature_flags: int
 ## [DeviceGlyphMap] to use
 var glyph_map: DeviceGlyphMap
+## Player assigned to
+var player: InputRelayPlayer
 
 func _init(device_id: int, device_name: String) -> void:
 	self.index = device_id
