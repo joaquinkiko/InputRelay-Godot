@@ -23,6 +23,7 @@ func _ready() -> void:
 	for n in players.size():
 		# Assign number starting at 1
 		players[n] = InputRelayPlayer.new(n + 1)
+		players[n].current_action_set = settings.default_action_set
 	# Setup device connections
 	Input.joy_connection_changed.connect(_joy_connection_changed)
 	for id in Input.get_connected_joypads():
