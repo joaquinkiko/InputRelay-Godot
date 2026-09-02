@@ -1,6 +1,11 @@
 ## Global InputRelay manager
 extends Node
 
+## Emitted when device is connected
+signal device_connected(id: int)
+## Emitted when device is disconnected, may contain owner's number, or 0 for no owner
+signal device_disconnected(id: int, owner: int)
+
 ## Max number of players, loaded from ProjectSetting("InputRelay/max_players").
 var MAX_PLAYERS: int
 
@@ -55,14 +60,19 @@ func _register_device(device_id: int, device_name: String = "") -> void:
 		device.glyph_map = settings.mouse_keyboard_glyph_map
 	else:
 		device.glyph_map = settings.generic_glyph_map
+	
+	device_connected.emit(device_id)
 
 func _unregister_device(device_id: int) -> void:
-	for device in devices:
-		if device.index == device_id:
-			if device.player:
-				unassign_device(device_id, device.player.number)
-			devices.erase(device_id)
-			break
+	var device := get_device(device_id)
+	var player := device.player
+	if player != null:
+		unassign_device(device_id, device.player.number)
+	devices.erase(device)
+	if player:
+		device_disconnected.emit(device_id, player.number)
+	else:
+		device_disconnected.emit(device_id, 0)
 
 func assign_device(device_id: int, player_number: int) -> void:
 	var device := get_device(device_id)
@@ -102,3 +112,10 @@ func get_device(index: int) -> InputRelayDevice:
 		if device.index == index:
 			return device
 	return null
+
+func player_has_devices(player_number: int) -> bool:
+	return not get_player(player_number).devices.is_empty()
+
+func device_is_assigned(device_id: int) -> bool:
+	var device := get_device(device_id)
+	return device != null && device.player != null
