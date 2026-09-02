@@ -29,16 +29,3 @@ func _init(device_id: int, device_name: String) -> void:
 			feature_flags |= Features.MOTION
 		if Input.has_joy_vibration(device_id):
 			feature_flags |= Features.HAPTIC
-	# Detect type
-	# TODO: Finish glyph_map assignment | Improve detection
-	var lname := device_name.to_lower()
-	if "xbox" in lname || "xinput" in lname:
-		pass
-	elif "playstation" in lname || "dualshock" in lname || "dualsense" in lname:
-		pass
-	elif "nintendo" in lname || "switch" in lname:
-		pass
-	elif "keyboard" in lname:
-		pass
-	else:
-		pass

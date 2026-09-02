@@ -8,10 +8,15 @@ var MAX_PLAYERS: int
 var devices: Array[InputRelayDevice]
 ## All [InputRelayPlayer]s
 var players: Array[InputRelayPlayer]
-## All [InputActionSet]s sets, sorted by name
-var action_sets: Dictionary[StringName, InputActionSet]
+## Relay settings
+var settings: InputRelaySettings
 
 func _ready() -> void:
+	# Get settings
+	settings = ProjectSettings.get_setting("InputRelay/settings_resource", InputRelaySettings.new())
+	if settings == null:
+		settings = InputRelaySettings.new()
+		push_error("No InputRelaySettings provided!")
 	# Setup players
 	MAX_PLAYERS = ProjectSettings.get_setting("InputRelay/max_players", 4)
 	players.resize(MAX_PLAYERS)
@@ -22,7 +27,7 @@ func _ready() -> void:
 	Input.joy_connection_changed.connect(_joy_connection_changed)
 	for id in Input.get_connected_joypads():
 		_register_device(id)
-	devices.append(InputRelayDevice.new(-1, "Keyboard & Mouse"))
+	_register_device(-1, "Keyboard & Mouse")
 
 func _joy_connection_changed(device_id: int, connected: bool) -> void:
 	if connected:
@@ -30,9 +35,25 @@ func _joy_connection_changed(device_id: int, connected: bool) -> void:
 	else:
 		_unregister_device(device_id)
 
-func _register_device(device_id: int) -> void:
-	var device := InputRelayDevice.new(device_id, Input.get_joy_name(device_id))
+func _register_device(device_id: int, device_name: String = "") -> void:
+	if device_name.is_empty():
+		if Input.get_connected_joypads().has(device_id):
+			device_name = Input.get_joy_name(device_id)
+		else:
+			device_name = "???"
+	var device := InputRelayDevice.new(device_id, device_name)
 	devices.append(device)
+	var lname := device_name.to_lower()
+	if "xbox" in lname || "xinput" in lname:
+		device.glyph_map = settings.xbox_glyph_map
+	elif "playstation" in lname || "dualshock" in lname || "dualsense" in lname:
+		device.glyph_map = settings.dualshock_glyph_map
+	elif "nintendo" in lname || "switch" in lname:
+		device.glyph_map = settings.nintendo_pro_glyph_map
+	elif "keyboard" in lname:
+		device.glyph_map = settings.mouse_keyboard_glyph_map
+	else:
+		device.glyph_map = settings.generic_glyph_map
 
 func _unregister_device(device_id: int) -> void:
 	for device in devices:

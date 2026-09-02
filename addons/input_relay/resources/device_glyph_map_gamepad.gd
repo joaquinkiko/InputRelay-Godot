@@ -1,5 +1,5 @@
 ## [DeviceGlyphMap] for SDL gamepads
-class_name DeviceGlyphMapGamepad extends Resource
+class_name DeviceGlyphMapGamepad extends DeviceGlyphMap
 
 @export_group("Face Buttons")
 @export var south_glyph: Texture2D

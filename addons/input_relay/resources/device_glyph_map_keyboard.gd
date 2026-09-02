@@ -1,5 +1,5 @@
 ## [DeviceGlyphMap] for mouse and keyboard
-class_name DeviceGlyphMapKeyboard extends Resource
+class_name DeviceGlyphMapKeyboard extends DeviceGlyphMap
 
 @export_group("Mouse")
 @export var mouse_left_glyph: Texture2D
