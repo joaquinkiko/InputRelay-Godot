@@ -195,3 +195,10 @@ static func is_mouse_button(button: MouseKeyButton) -> bool:
 ## True if this JoypadButton is actually reported as an axis (triggers)
 static func is_axis_button(button: JoypadButton) -> bool:
 	return button == JoypadButton.LEFT_TRIGGER || button == JoypadButton.RIGHT_TRIGGER
+
+## Converts a stick [JoypadMotion] to its [x, y] [JoyAxis] pair, if any
+static func joypad_motion_to_joy_axes(motion: JoypadMotion) -> Array[JoyAxis]:
+	match motion:
+		JoypadMotion.LEFT_STICK: return [JOY_AXIS_LEFT_X, JOY_AXIS_LEFT_Y]
+		JoypadMotion.RIGHT_STICK: return [JOY_AXIS_RIGHT_X, JOY_AXIS_RIGHT_Y]
+		_: return []

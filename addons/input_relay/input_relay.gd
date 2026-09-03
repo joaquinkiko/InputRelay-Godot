@@ -15,6 +15,8 @@ var devices: Array[InputRelayDevice]
 var players: Array[InputRelayPlayer]
 ## Relay settings
 var settings: InputRelaySettings
+## Handle remapping of input
+var remapper: InputRelayMapper
 
 func _ready() -> void:
 	# Get settings
@@ -34,6 +36,9 @@ func _ready() -> void:
 	for id in Input.get_connected_joypads():
 		_register_device(id)
 	_register_device(-1, "Keyboard & Mouse")
+	# Setup remapper, and load initial mappings
+	remapper = InputRelayMapper.new()
+	remapper.refresh_mappings()
 
 func _joy_connection_changed(device_id: int, connected: bool) -> void:
 	if connected:
