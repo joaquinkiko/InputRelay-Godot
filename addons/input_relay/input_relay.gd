@@ -208,3 +208,7 @@ func vibrate_player_medium(player: int) -> void:
 ## Helper function for very strong vibrations (e.g. heavy impacts)
 func vibrate_player_strong(player: int) -> void:
 	vibrate_player(player, _HAPTIC_STRONG.x, _HAPTIC_STRONG.y, _HAPTIC_STRONG.z)
+
+## Returns list of devices currently not assigned to a player
+func unassigned_devices() -> Array[InputRelayDevice]:
+	return devices.filter(func(device: InputRelayDevice): device.player == null)
