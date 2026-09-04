@@ -202,3 +202,39 @@ static func joypad_motion_to_joy_axes(motion: JoypadMotion) -> Array[JoyAxis]:
 		JoypadMotion.LEFT_STICK: return [JOY_AXIS_LEFT_X, JOY_AXIS_LEFT_Y]
 		JoypadMotion.RIGHT_STICK: return [JOY_AXIS_RIGHT_X, JOY_AXIS_RIGHT_Y]
 		_: return []
+
+## True if the value is a real MouseKeyButton enum entry
+static func is_valid_mouse_key_button(button: int) -> bool:
+	return MouseKeyButton.values().has(button)
+
+## True if the value is a real JoypadButton enum entry
+static func is_valid_joypad_button(button: int) -> bool:
+	return JoypadButton.values().has(button)
+
+## True if the value is a real JoypadMotion enum entry
+static func is_valid_joypad_motion(motion: int) -> bool:
+	return JoypadMotion.values().has(motion)
+
+## Converts a MouseKeyButton to its enum name, for config file storage
+static func mouse_key_button_to_string(button: MouseKeyButton) -> String:
+	return MouseKeyButton.find_key(button)
+
+## Converts an enum name back to a MouseKeyButton. Returns NONE if not found
+static func string_to_mouse_key_button(string: String) -> MouseKeyButton:
+	return MouseKeyButton.get(string, MouseKeyButton.NONE)
+
+## Converts a JoypadButton to its enum name, for config file storage
+static func joypad_button_to_string(button: JoypadButton) -> String:
+	return JoypadButton.find_key(button)
+
+## Converts an enum name back to a JoypadButton. Returns NONE if not found
+static func string_to_joypad_button(string: String) -> JoypadButton:
+	return JoypadButton.get(string, JoypadButton.NONE)
+
+## Converts a JoypadMotion to its enum name, for config file storage
+static func joypad_motion_to_string(motion: JoypadMotion) -> String:
+	return JoypadMotion.find_key(motion)
+
+## Converts an enum name back to a JoypadMotion. Returns NONE if not found
+static func string_to_joypad_motion(string: String) -> JoypadMotion:
+	return JoypadMotion.get(string, JoypadMotion.NONE)
