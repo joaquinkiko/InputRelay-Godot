@@ -17,8 +17,6 @@ enum Vendors {
 
 ## Internal index of device
 var index: int
-## Type of device (joy or keyboard and mouse)
-var type: int
 ## Human-friendly name
 var name: String
 ## Flags indicating available features
