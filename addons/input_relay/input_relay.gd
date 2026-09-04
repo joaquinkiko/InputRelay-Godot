@@ -35,7 +35,11 @@ func _ready() -> void:
 	Input.joy_connection_changed.connect(_joy_connection_changed)
 	for id in Input.get_connected_joypads():
 		_register_device(id)
-	_register_device(-1, "Keyboard & Mouse")
+	match OS.get_name(): # If on PC we should register Keyboard & Mouse
+		"Windows", "macOS", "Linux", "FreeBSD", "NetBSD", "OpenBSD", "BSD", "Web":
+			_register_device(-1, "Keyboard & Mouse")
+		_:
+			pass
 	# Setup remapper, and load initial mappings
 	remapper = InputRelayMapper.new()
 	remapper.refresh_mappings()
