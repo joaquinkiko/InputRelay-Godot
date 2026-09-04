@@ -60,3 +60,15 @@ func _init(device_id: int, device_name: String, settings: InputRelaySettings = n
 		glyph_map = settings.mouse_keyboard_glyph_map
 	else:
 		glyph_map = settings.generic_glyph_map
+
+## Returns true if device supports custom light colors
+func supports_lights() -> bool:
+	return feature_flags & Features.LIGHTS
+
+## Returns true if device supports gyro detection
+func supports_motion() -> bool:
+	return feature_flags & Features.MOTION
+
+## Returns true if device supports vibrations
+func supports_haptic() -> bool:
+	return feature_flags & Features.HAPTIC

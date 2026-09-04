@@ -132,3 +132,11 @@ func player_has_non_keyboard_devices(player_number: int) -> bool:
 func device_is_assigned(device_id: int) -> bool:
 	var device := get_device(device_id)
 	return device != null && device.player != null
+
+func rumble_player(player: int) -> void:
+	if player < 0 || player > InputRelay.MAX_PLAYERS:
+		push_error("Rumble player number out of range: %d" % player)
+		return
+	for device in player.devices:
+		if device.
+	Input.start_joy_vibration(-1,-1,-1,-1)
