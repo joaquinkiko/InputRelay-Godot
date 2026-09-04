@@ -6,7 +6,7 @@ signal device_connected(id: int)
 ## Emitted when device is disconnected, may contain owner's number, or 0 for no owner
 signal device_disconnected(id: int, owner: int)
 
-const KEYBOARD_INDEX := -1
+const KEYBOARD_INDEX := InputEvent.DEVICE_ID_KEYBOARD
 
 # Default values for helper vibrations (weak_motor, strong_motor, duration)
 const _HAPTIC_TAP = 	Vector3(0.15, 0.08, 0.05)
