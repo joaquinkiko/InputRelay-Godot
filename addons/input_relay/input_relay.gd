@@ -6,6 +6,8 @@ signal device_connected(id: int)
 ## Emitted when device is disconnected, may contain owner's number, or 0 for no owner
 signal device_disconnected(id: int, owner: int)
 
+const KEYBOARD_INDEX := -1
+
 ## Max number of players, loaded from ProjectSetting("InputRelay/max_players").
 var MAX_PLAYERS: int
 
@@ -37,7 +39,7 @@ func _ready() -> void:
 		_register_device(id)
 	match OS.get_name(): # If on PC we should register Keyboard & Mouse
 		"Windows", "macOS", "Linux", "FreeBSD", "NetBSD", "OpenBSD", "BSD", "Web":
-			_register_device(-1, "Keyboard & Mouse")
+			_register_device(KEYBOARD_INDEX, "Keyboard & Mouse")
 		_:
 			pass
 	# Setup remapper, and load initial mappings
@@ -59,6 +61,14 @@ func _register_device(device_id: int, device_name: String = "") -> void:
 	var device := InputRelayDevice.new(device_id, device_name, settings)
 	devices.append(device)
 	device_connected.emit(device_id)
+	# Check if device should be auto-assigned based on project settings
+	# By default used to assign keyboard and first connected device to player 1
+	if device_id == KEYBOARD_INDEX\
+	and ProjectSettings.get_setting("InputRelay/player_1_auto_assign_keyboard", true):
+		assign_device(device_id, 1)
+	elif !player_has_non_keyboard_devices(1)\
+	and ProjectSettings.get_setting("InputRelay/player_1_auto_assign_first_device", true):
+		assign_device(device_id, 1)
 
 func _unregister_device(device_id: int) -> void:
 	var device := get_device(device_id)
@@ -112,6 +122,12 @@ func get_device(index: int) -> InputRelayDevice:
 
 func player_has_devices(player_number: int) -> bool:
 	return not get_player(player_number).devices.is_empty()
+
+func player_has_non_keyboard_devices(player_number: int) -> bool:
+	for device in get_player(player_number).devices:
+		if device.index != KEYBOARD_INDEX:
+			return true
+	return false
 
 func device_is_assigned(device_id: int) -> bool:
 	var device := get_device(device_id)

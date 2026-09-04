@@ -18,7 +18,14 @@ const settings := [
 		"default": 4,
 	},
 	{
-		"name": "InputRelay/auto_assign_devices_to_player_1",
+		"name": "InputRelay/player_1_auto_assign_keyboard",
+		"type": TYPE_BOOL,
+		"hint": PROPERTY_HINT_NONE,
+		"hint_string": "",
+		"default": true,
+	},
+	{
+		"name": "InputRelay/player_1_auto_assign_first_device",
 		"type": TYPE_BOOL,
 		"hint": PROPERTY_HINT_NONE,
 		"hint_string": "",
