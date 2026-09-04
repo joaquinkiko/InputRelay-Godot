@@ -8,6 +8,12 @@ signal device_disconnected(id: int, owner: int)
 
 const KEYBOARD_INDEX := -1
 
+# Default values for helper vibrations (weak_motor, strong_motor, duration)
+const _HAPTIC_TAP = 	Vector3(0.15, 0.08, 0.05)
+const _HAPTIC_WEAK = 	Vector3(0.25, 0.15, 0.10)
+const _HAPTIC_MEDIUM = 	Vector3(0.45, 0.30, 0.15)
+const _HAPTIC_STRONG = 	Vector3(0.75, 0.55, 0.25)
+
 ## Max number of players, loaded from ProjectSetting("InputRelay/max_players").
 var MAX_PLAYERS: int
 
@@ -80,6 +86,9 @@ func _unregister_device(device_id: int) -> void:
 		device_disconnected.emit(device_id, player.number)
 	else:
 		device_disconnected.emit(device_id, 0)
+	# Stop any vibration just to be safe
+	if Input.get_connected_joypads().has(device_id):
+		Input.stop_joy_vibration(device_id)
 
 func assign_device(device_id: int, player_number: int) -> void:
 	var device := get_device(device_id)
@@ -100,6 +109,9 @@ func unassign_device(device_id: int, player_number: int) -> void:
 		device.player == null
 	if player.devices.has(device):
 		player.devices.erase(device)
+	# Stop any vibration
+	if Input.get_connected_joypads().has(device_id):
+		Input.stop_joy_vibration(device_id)
 
 func clear_devices(player_number: int) -> void:
 	var player := get_player(player_number)
@@ -133,10 +145,66 @@ func device_is_assigned(device_id: int) -> bool:
 	var device := get_device(device_id)
 	return device != null && device.player != null
 
-func rumble_player(player: int) -> void:
+## Vibrates all player devices using [param weak_motor] and [param strong_motor]
+## to determine magnitude, and [param duration] to determine how long.
+## [param duration] of 0.0 will play for as long as possible. Use 0 for all players.
+func vibrate_player(player: int, weak_motor: float, strong_motor: float, duration: float) -> void:
 	if player < 0 || player > InputRelay.MAX_PLAYERS:
-		push_error("Rumble player number out of range: %d" % player)
+		push_error("Player number out of range for vibration: %d" % player)
 		return
-	for device in player.devices:
-		if device.
-	Input.start_joy_vibration(-1,-1,-1,-1)
+	if player == 0:
+		for n in range(1, MAX_PLAYERS + 1):
+			for device in get_player(n).devices:
+				if not device.supports_haptic(): continue
+				Input.start_joy_vibration(device.index, weak_motor, strong_motor, duration)
+		return
+	for device in get_player(player).devices:
+		if not device.supports_haptic(): continue
+		Input.start_joy_vibration(device.index, weak_motor, strong_motor, duration)
+
+## Returns true if any of player devices are currently vibrating. Use 0 for all players.
+func player_is_vibrating(player: int) -> bool:
+	if player < 0 || player > InputRelay.MAX_PLAYERS:
+		push_error("Player number out of range for vibration: %d" % player)
+		return false
+	if player == 0:
+		for n in range(1, MAX_PLAYERS + 1):
+			for device in get_player(n).devices:
+				if not device.supports_haptic(): continue
+				if Input.is_joy_vibrating(device.index): return true
+		return false
+	for device in get_player(player).devices:
+		if not device.supports_haptic(): continue
+		if Input.is_joy_vibrating(device.index): return true
+	return false
+
+## Stop all player devices from vibrating. Use 0 for all players.
+func stop_vibrating_player(player: int) -> void:
+	if player < 0 || player > InputRelay.MAX_PLAYERS:
+		push_error("Player number out of range for vibration: %d" % player)
+		return
+	if player == 0:
+		for n in range(1, MAX_PLAYERS + 1):
+			for device in get_player(player).devices:
+				if not device.supports_haptic(): continue
+				Input.stop_joy_vibration(device.index)
+		return
+	for device in players[player].devices:
+		if not device.supports_haptic(): continue
+		Input.stop_joy_vibration(device.index)
+
+## Helper function for very small 'tap' haptics (e.g. UI selection, item pickups)
+func vibrate_player_tap(player: int) -> void:
+	vibrate_player(player, _HAPTIC_TAP.x, _HAPTIC_TAP.y, _HAPTIC_TAP.z)
+
+## Helper function for weak vibrations (e.g. footsteps, minor interactions)
+func vibrate_player_weak(player: int) -> void:
+	vibrate_player(player, _HAPTIC_WEAK.x, _HAPTIC_WEAK.y, _HAPTIC_WEAK.z)
+
+## Helper function for medium strength vibrations (e.g. collisions)
+func vibrate_player_medium(player: int) -> void:
+	vibrate_player(player, _HAPTIC_MEDIUM.x, _HAPTIC_MEDIUM.y, _HAPTIC_MEDIUM.z)
+
+## Helper function for very strong vibrations (e.g. heavy impacts)
+func vibrate_player_strong(player: int) -> void:
+	vibrate_player(player, _HAPTIC_STRONG.x, _HAPTIC_STRONG.y, _HAPTIC_STRONG.z)
