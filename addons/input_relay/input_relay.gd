@@ -52,20 +52,8 @@ func _register_device(device_id: int, device_name: String = "") -> void:
 			device_name = Input.get_joy_name(device_id)
 		else:
 			device_name = "???"
-	var device := InputRelayDevice.new(device_id, device_name)
+	var device := InputRelayDevice.new(device_id, device_name, settings)
 	devices.append(device)
-	var lname := device_name.to_lower()
-	if "xbox" in lname || "xinput" in lname:
-		device.glyph_map = settings.xbox_glyph_map
-	elif "playstation" in lname || "dualshock" in lname || "dualsense" in lname:
-		device.glyph_map = settings.dualshock_glyph_map
-	elif "nintendo" in lname || "switch" in lname:
-		device.glyph_map = settings.nintendo_pro_glyph_map
-	elif "keyboard" in lname:
-		device.glyph_map = settings.mouse_keyboard_glyph_map
-	else:
-		device.glyph_map = settings.generic_glyph_map
-	
 	device_connected.emit(device_id)
 
 func _unregister_device(device_id: int) -> void:
