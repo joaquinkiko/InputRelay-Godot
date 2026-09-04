@@ -25,6 +25,8 @@ var players: Array[InputRelayPlayer]
 var settings: InputRelaySettings
 ## Handle remapping of input
 var remapper: InputRelayMapper
+## Last player to receive input from, or 0 if received from unassigned device
+var last_player_input: int
 
 func _ready() -> void:
 	# Get settings
@@ -51,6 +53,16 @@ func _ready() -> void:
 	# Setup remapper, and load initial mappings
 	remapper = InputRelayMapper.new()
 	remapper.refresh_mappings()
+
+func _input(event: InputEvent) -> void:
+	# Udpdate information on last player and device input has been received from
+	# This information is important for knowing what glyphs to use for players
+	last_player_input = get_device_owner(event.device)
+	if last_player_input != 0:
+		if event.device == InputEvent.DEVICE_ID_MOUSE || event.device == InputEvent.DEVICE_ID_KEYBOARD:
+			get_player(last_player_input).last_device = KEYBOARD_INDEX
+		else:
+			get_player(last_player_input).last_device = event.device
 
 func _joy_connection_changed(device_id: int, connected: bool) -> void:
 	if connected:
@@ -212,3 +224,16 @@ func vibrate_player_strong(player: int) -> void:
 ## Returns list of devices currently not assigned to a player
 func unassigned_devices() -> Array[InputRelayDevice]:
 	return devices.filter(func(device: InputRelayDevice): device.player == null)
+
+## Returns player number that device is assigned to, or 0 if is unassigned.
+## [member InputEvent.DEVICE_ID_MOUSE] and [member InputEvent.DEVICE_ID_KEYBOARD]
+## get changed to [member KEYBOARD_INDEX].
+func get_device_owner(device_id: int) -> int:
+	if device_id == InputEvent.DEVICE_ID_MOUSE || device_id == InputEvent.DEVICE_ID_KEYBOARD:
+		device_id = KEYBOARD_INDEX
+	for device in devices:
+		if device.index == device_id:
+			if device.player == null:
+				return 0
+			return device.player.number
+	return 0

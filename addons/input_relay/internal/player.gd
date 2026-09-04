@@ -11,6 +11,8 @@ var color := Color.WHITE
 var current_action_set: StringName
 ## Key(s) of currently active layers on action set
 var current_action_layers: Array[StringName]
+## Index of last device to receive input from owned devices
+var last_device: int
 
 func _init(new_number: int) -> void:
 	self.number = new_number
