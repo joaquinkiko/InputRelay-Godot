@@ -17,6 +17,8 @@ enum Vendors {
 
 ## Internal index of device
 var index: int
+## Type of device (joy or keyboard and mouse)
+var type: int
 ## Human-friendly name
 var name: String
 ## Flags indicating available features
@@ -54,7 +56,7 @@ func _init(device_id: int, device_name: String, settings: InputRelaySettings = n
 		glyph_map = settings.dualshock_glyph_map
 	elif vendor_id == Vendors.NINTENDO || "nintendo" in lname || "switch" in lname:
 		glyph_map = settings.nintendo_pro_glyph_map
-	elif "keyboard" in lname:
+	elif device_id == InputRelay.KEYBOARD_INDEX:
 		glyph_map = settings.mouse_keyboard_glyph_map
 	else:
 		glyph_map = settings.generic_glyph_map

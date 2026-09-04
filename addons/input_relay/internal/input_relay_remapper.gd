@@ -78,7 +78,7 @@ func _map_action(action_name: StringName, action_def: InputActionDef, player: In
 			InputMap.action_set_deadzone(full_name, action_def.deadzone)
 		_managed_actions.append(full_name)
 		for device in player.devices:
-			if device.index == -1:
+			if device.index == InputRelay.KEYBOARD_INDEX:
 				_add_key_mouse_event(full_name, action_def.get(&"mouse_key_button"), device.index)
 			else:
 				_add_joy_button_event(full_name, action_def.get(&"joy_button"), device.index)
@@ -98,7 +98,7 @@ func _map_stick_direction(action_name: StringName, direction: StringName, stick_
 		InputMap.action_set_deadzone(full_name, stick_pad.deadzone)
 		_managed_actions.append(full_name)
 		for device in player.devices:
-			if device.index == -1:
+			if device.index == InputRelay.KEYBOARD_INDEX:
 				_add_key_mouse_event(full_name, mouse_key_button, device.index)
 			elif axes.size() == 2:
 				var event := InputEventJoypadMotion.new()
