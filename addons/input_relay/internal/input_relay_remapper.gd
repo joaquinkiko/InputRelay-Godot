@@ -7,6 +7,37 @@ const _STICK_DIRECTIONS: Array[StringName] = [&"up", &"down", &"left", &"right"]
 ## Actions created by the last refresh_mappings(), so they can be cleared first
 var _managed_actions: Array[StringName] = []
 
+## Remaps configuration file
+var remap_file: ConfigFile
+
+## Path to save/load [member remap_file]
+var remap_file_path: String
+
+func _init() -> void:
+	# Get remap path from project settings, and load settings if auto loading is enabled
+	remap_file_path = ProjectSettings.get_setting("InputRelay/remap_save_load_path", "user://input_remaps.cfg")
+	if ProjectSettings.get_setting("InputRelay/auto_save_load_remaps", true):
+		load_remaps()
+
+func _notification(what: int) -> void:
+	# Auto-save remaps before deleting
+	if what == NOTIFICATION_PREDELETE and ProjectSettings.get_setting("InputRelay/auto_save_load_remaps", true):
+		save_remaps()
+
+## Loads a [member remap_file] from [member remap_file_path]. Fails if path is empty.
+func load_remaps() -> void:
+	if remap_file_path.is_empty():
+		push_error("No remap_file_path defined, unable to load")
+		return
+	remap_file.load(remap_file_path)
+
+## Saves a [member remap_file] from [member remap_file_path]. Fails if path is empty.
+func save_remaps() -> void:
+	if remap_file_path.is_empty():
+		push_error("No remap_file_path defined, unable to save")
+		return
+	remap_file.save(remap_file_path)
+
 ## Rebuilds InputMap actions from every player's active action set + layers.
 ## These are labeled as "[action][player_number]" for non-directional, and
 ## "[action][direction][player_number]" for directional input.
