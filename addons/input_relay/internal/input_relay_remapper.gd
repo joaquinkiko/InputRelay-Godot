@@ -75,6 +75,10 @@ func _map_action(set_key: StringName, layer_key: StringName, action_name: String
 		for direction in _STICK_DIRECTIONS: # Need to map multiple directions
 			_map_stick_direction(set_key, layer_key, action_name, direction, action_def, player)
 		return
+	if action_def is InputActionDefDpad:
+		for direction in _STICK_DIRECTIONS: # Need to map multiple directions
+			_map_dpad_direction(set_key, layer_key, action_name, direction, player)
+		return
 	# Suffix is typically player number, though player 1 also uses blank, or no suffix
 	for suffix in _action_suffixes(player):
 		var full_name := StringName("%s%s"%[action_name, suffix])
@@ -113,6 +117,22 @@ func _map_stick_direction(set_key: StringName, layer_key: StringName, action_nam
 				event.axis = axes[0] if is_horizontal else axes[1]
 				event.axis_value = sign
 				InputMap.action_add_event(full_name, event)
+
+## Registers one directional sub-action for a dpad: "[name]_[direction][suffix]"
+func _map_dpad_direction(set_key: StringName, layer_key: StringName, action_name: StringName, direction: StringName, player: InputRelayPlayer) -> void:
+	var direction_index := _STICK_DIRECTIONS.find(direction)
+	var mouse_key_button: InputActionDef.MouseKeyButton = get_remap_directional_key_mouse(set_key, layer_key, action_name, player.number)[direction_index]
+	var joy_button: InputActionDef.JoypadButton = get_remap_directional_joy_button(set_key, layer_key, action_name, player.number)[direction_index]
+	
+	for suffix in _action_suffixes(player):
+		var full_name := StringName("%s_%s%s" % [action_name, direction, suffix])
+		InputMap.add_action(full_name)
+		_managed_actions.append(full_name)
+		for device in player.devices:
+			if device.index == InputRelay.KEYBOARD_INDEX:
+				_add_key_mouse_event(full_name, mouse_key_button, device.index)
+			else:
+				_add_joy_button_event(full_name, joy_button, device.index)
 
 ## Suffixes to build for a player: numbered always, plus "" for player 1
 func _action_suffixes(player: InputRelayPlayer) -> Array[String]:
