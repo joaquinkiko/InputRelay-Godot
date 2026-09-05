@@ -54,48 +54,55 @@ func refresh_mappings() -> void:
 		if action_set == null:
 			continue
 		var actions: Dictionary[StringName, InputActionDef] = action_set.actions.duplicate()
+		# Track which layer each action came from, so remaps are looked up correctly
+		var action_layers: Dictionary[StringName, StringName] = {}
+		for action_key in actions:
+			action_layers[action_key] = &""
 		for layer_name in player.current_action_layers:
 			var layer: InputActionSet = action_set.layers.get(layer_name)
 			if layer == null:
 				continue
 			for action_key in layer.actions:
 				actions[action_key] = layer.actions[action_key]
+				action_layers[action_key] = layer_name
 		
 		for action_key in actions:
-			_map_action(action_key, actions[action_key], player)
+			_map_action(player.current_action_set, action_layers[action_key], action_key, actions[action_key], player)
 
 ## Creates the InputMap action(s) for a single [InputActionDef]
-func _map_action(action_name: StringName, action_def: InputActionDef, player: InputRelayPlayer) -> void:
+func _map_action(set_key: StringName, layer_key: StringName, action_name: StringName, action_def: InputActionDef, player: InputRelayPlayer) -> void:
 	if action_def is InputActionDefStickPad:
 		for direction in _STICK_DIRECTIONS: # Need to map multiple directions
-			_map_stick_direction(action_name, direction, action_def, player)
+			_map_stick_direction(set_key, layer_key, action_name, direction, action_def, player)
 		return
 	# Suffix is typically player number, though player 1 also uses blank, or no suffix
 	for suffix in _action_suffixes(player):
 		var full_name := StringName("%s%s"%[action_name, suffix])
 		InputMap.add_action(full_name)
 		if action_def is InputActionDefAnalog:
-			InputMap.action_set_deadzone(full_name, action_def.deadzone)
+			InputMap.action_set_deadzone(full_name, get_remap_update_deadzone(set_key, layer_key, action_name, player.number))
 		_managed_actions.append(full_name)
 		for device in player.devices:
 			if device.index == InputRelay.KEYBOARD_INDEX:
-				_add_key_mouse_event(full_name, action_def.get(&"mouse_key_button"), device.index)
+				_add_key_mouse_event(full_name, get_remap_key_mouse(set_key, layer_key, action_name, player.number), device.index)
 			else:
-				_add_joy_button_event(full_name, action_def.get(&"joy_button"), device.index)
+				_add_joy_button_event(full_name, get_remap_joy_button(set_key, layer_key, action_name, player.number), device.index)
 
 ## Registers one directional sub-action for a stick pad: "[name]_[direction][suffix]"
-func _map_stick_direction(action_name: StringName, direction: StringName, stick_pad: InputActionDefStickPad, player: InputRelayPlayer) -> void:
-	var mouse_key_button: InputActionDef.MouseKeyButton = stick_pad.get("%s_mouse_key_button"%direction)
-	var axes := InputActionDef.joypad_motion_to_joy_axes(stick_pad.joy_motion)
+func _map_stick_direction(set_key: StringName, layer_key: StringName, action_name: StringName, direction: StringName, stick_pad: InputActionDefStickPad, player: InputRelayPlayer) -> void:
+	var direction_index := _STICK_DIRECTIONS.find(direction)
+	var mouse_key_button: InputActionDef.MouseKeyButton = get_remap_directional_key_mouse(set_key, layer_key, action_name, player.number)[direction_index]
+	var axes := InputActionDef.joypad_motion_to_joy_axes(get_remap_directional_joy_motion(set_key, layer_key, action_name, player.number))
 	var is_horizontal := direction == &"left" || direction == &"right"
-	var invert := stick_pad.invert_x if is_horizontal else stick_pad.invert_y
+	var invert := get_remap_update_invert_x(set_key, layer_key, action_name, player.number) if is_horizontal else get_remap_update_invert_y(set_key, layer_key, action_name, player.number)
 	var negative := direction == &"left" || direction == &"up"
 	var sign := -1.0 if negative != invert else 1.0
+	var deadzone := get_remap_update_deadzone(set_key, layer_key, action_name, player.number)
 	
 	for suffix in _action_suffixes(player):
 		var full_name := StringName("%s_%s%s" % [action_name, direction, suffix])
 		InputMap.add_action(full_name)
-		InputMap.action_set_deadzone(full_name, stick_pad.deadzone)
+		InputMap.action_set_deadzone(full_name, deadzone)
 		_managed_actions.append(full_name)
 		for device in player.devices:
 			if device.index == InputRelay.KEYBOARD_INDEX:
