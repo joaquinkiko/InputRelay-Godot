@@ -72,3 +72,5 @@ class_name DeviceGlyphMapGamepad extends DeviceGlyphMap
 @export var paddle4_string: StringName = "Paddle 4"
 @export var touchpad_glyph: Texture2D
 @export var touchpad_string: StringName = "Touchpad"
+@export var gyro_glyph: Texture2D
+@export var gyro_string: StringName = "Motion"

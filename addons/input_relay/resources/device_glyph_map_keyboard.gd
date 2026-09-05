@@ -1,7 +1,11 @@
 ## [DeviceGlyphMap] for mouse and keyboard
 class_name DeviceGlyphMapKeyboard extends DeviceGlyphMap
 
-@export_group("Mouse")
+@export_group("Mouse Motion")
+@export var mouse_glyph: Texture2D
+@export var mouse_string: StringName = "Mouse"
+
+@export_group("Mouse Buttons")
 @export var mouse_left_glyph: Texture2D
 @export var mouse_left_string: StringName = "Left Click"
 @export var mouse_right_glyph: Texture2D
