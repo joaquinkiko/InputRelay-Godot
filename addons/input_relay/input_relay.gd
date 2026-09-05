@@ -111,6 +111,7 @@ func assign_device(device_id: int, player_number: int) -> void:
 		unassign_device(device_id, device.player.number)
 	player.devices.append(device)
 	device.player = player
+	remapper.refresh_mappings()
 
 func unassign_device(device_id: int, player_number: int) -> void:
 	var device := get_device(device_id)
@@ -124,6 +125,7 @@ func unassign_device(device_id: int, player_number: int) -> void:
 	# Stop any vibration
 	if Input.get_connected_joypads().has(device_id):
 		Input.stop_joy_vibration(device_id)
+	remapper.refresh_mappings()
 
 func clear_devices(player_number: int) -> void:
 	var player := get_player(player_number)

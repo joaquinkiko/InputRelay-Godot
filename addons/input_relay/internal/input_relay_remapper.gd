@@ -42,6 +42,7 @@ func save_remaps() -> void:
 ## These are labeled as "[action][player_number]" for non-directional, and
 ## "[action][direction][player_number]" for directional input.
 ## Player 1 additionally gets un-numbered actions for singleplayer convenience.
+## Must be manually called when controls are remapped.
 func refresh_mappings() -> void:
 	# Clear actions that weren't manually setup
 	for action_name in _managed_actions:
