@@ -281,26 +281,29 @@ func set_player_action_layers(player_number: int, layer_keys: Array[StringName])
 	remapper.refresh_mappings()
 
 ## Waits for next input from player's devices, remaps [param action_name] to it.
+## Player 0 accepts input from any device and overwrites the remap for all players.
 ## Returns true if a remap was applied, false on timeout or escape button. Call with await.
 func remap_button_await(set_key: StringName, layer_key: StringName, action_name: StringName,
 						player_number: int, timeout_seconds: float = 5.0,
 						escape_key_mouse_buttons: Array[InputActionDef.MouseKeyButton] = _DEFAULT_REMAP_ESCAPE_KEYBOARD,
 						escape_joy_buttons: Array[InputActionDef.JoypadButton] = _DEFAULT_REMAP_ESCAPE_JOY
 						) -> bool:
-	if player_number <= 0 || player_number > InputRelay.MAX_PLAYERS:
+	if player_number < 0 || player_number > InputRelay.MAX_PLAYERS:
 		push_error("Player number out of range for set change: %d" % player_number)
 		return false
-	var player := get_player(player_number)
-	var result := await _await_next_button(player, timeout_seconds, escape_key_mouse_buttons, escape_joy_buttons)
+	var devices := _remap_devices_for_player(player_number)
+	var result := await _await_next_button(devices, timeout_seconds, escape_key_mouse_buttons, escape_joy_buttons)
 	if not result["accepted"]:
 		return false
-	if result["is_key_mouse"]:
-		remapper.remap_key_mouse(set_key, layer_key, action_name, player_number, result["key_mouse_button"])
-	else:
-		remapper.remap_joy_button(set_key, layer_key, action_name, player_number, result["joy_button"])
+	for target_player in _remap_target_players(player_number):
+		if result["is_key_mouse"]:
+			remapper.remap_key_mouse(set_key, layer_key, action_name, target_player, result["key_mouse_button"])
+		else:
+			remapper.remap_joy_button(set_key, layer_key, action_name, target_player, result["joy_button"])
 	return true
 
-## Waits for next input, remaps dpad's up direction. Returns true if applied. Call with await.
+## Waits for next input, remaps dpad's up direction. Player 0 accepts any device and overwrites
+## for all players. Returns true if applied. Call with await.
 func remap_dpad_up_await(set_key: StringName, layer_key: StringName, action_name: StringName,
 						player_number: int, timeout_seconds: float = 5.0,
 						escape_key_mouse_buttons: Array[InputActionDef.MouseKeyButton] = _DEFAULT_REMAP_ESCAPE_KEYBOARD,
@@ -317,7 +320,8 @@ func remap_dpad_up_await(set_key: StringName, layer_key: StringName, action_name
 		escape_joy_buttons
 		)
 
-## Waits for next input, remaps dpad's down direction. Returns true if applied. Call with await.
+## Waits for next input, remaps dpad's down direction. Player 0 accepts any device and overwrites
+## for all players. Returns true if applied. Call with await.
 func remap_dpad_down_await(set_key: StringName, layer_key: StringName, action_name: StringName,
 							player_number: int, timeout_seconds: float = 5.0,
 							escape_key_mouse_buttons: Array[InputActionDef.MouseKeyButton] = _DEFAULT_REMAP_ESCAPE_KEYBOARD,
@@ -334,7 +338,8 @@ func remap_dpad_down_await(set_key: StringName, layer_key: StringName, action_na
 		escape_joy_buttons
 		)
 
-## Waits for next input, remaps dpad's left direction. Returns true if applied. Call with await.
+## Waits for next input, remaps dpad's left direction. Player 0 accepts any device and overwrites
+## for all players. Returns true if applied. Call with await.
 func remap_dpad_left_await(set_key: StringName, layer_key: StringName, action_name: StringName,
 							player_number: int, timeout_seconds: float = 5.0,
 							escape_key_mouse_buttons: Array[InputActionDef.MouseKeyButton] = _DEFAULT_REMAP_ESCAPE_KEYBOARD,
@@ -351,7 +356,8 @@ func remap_dpad_left_await(set_key: StringName, layer_key: StringName, action_na
 		escape_joy_buttons
 		)
 
-## Waits for next input, remaps dpad's right direction. Returns true if applied. Call with await.
+## Waits for next input, remaps dpad's right direction. Player 0 accepts any device and overwrites
+## for all players. Returns true if applied. Call with await.
 func remap_dpad_right_await(set_key: StringName, layer_key: StringName, action_name: StringName,
 							player_number: int, timeout_seconds: float = 5.0,
 							escape_key_mouse_buttons: Array[InputActionDef.MouseKeyButton] = _DEFAULT_REMAP_ESCAPE_KEYBOARD,
@@ -376,11 +382,11 @@ func _await_next_button_directional(set_key: StringName, layer_key: StringName, 
 									escape_key_mouse_buttons: Array[InputActionDef.MouseKeyButton],
 									escape_joy_buttons: Array[InputActionDef.JoypadButton]
 									) -> bool:
-	if player_number <= 0 || player_number > InputRelay.MAX_PLAYERS:
+	if player_number < 0 || player_number > InputRelay.MAX_PLAYERS:
 		push_error("Player number out of range for set change: %d" % player_number)
 		return false
-	var player := get_player(player_number)
-	var result := await _await_next_button(player, timeout_seconds, escape_key_mouse_buttons, escape_joy_buttons)
+	var devices := _remap_devices_for_player(player_number)
+	var result := await _await_next_button(devices, timeout_seconds, escape_key_mouse_buttons, escape_joy_buttons)
 	if not result.accepted:
 		return false
 	var up := -1
@@ -393,26 +399,43 @@ func _await_next_button_directional(set_key: StringName, layer_key: StringName, 
 			1: down = result.key_mouse_button
 			2: left = result.key_mouse_button
 			3: right = result.key_mouse_button
-		remapper.remap_directional_key_mouse(set_key, layer_key, action_name, player_number, up, down, left, right)
+		for target_player in _remap_target_players(player_number):
+			remapper.remap_directional_key_mouse(set_key, layer_key, action_name, target_player, up, down, left, right)
 	else:
 		match direction_index:
 			0: up = result.joy_button
 			1: down = result.joy_button
 			2: left = result.joy_button
 			3: right = result.joy_button
-		remapper.remap_directional_joy_button(set_key, layer_key, action_name, player_number, up, down, left, right)
+		for target_player in _remap_target_players(player_number):
+			remapper.remap_directional_joy_button(set_key, layer_key, action_name, target_player, up, down, left, right)
 	return true
 
-## Polls player's devices each frame for a newly pressed button. Ignores anything already
+## Devices to listen on for a remap: player's own devices, or every connected device for player 0
+func _remap_devices_for_player(player_number: int) -> Array[InputRelayDevice]:
+	if player_number == 0:
+		return devices.duplicate()
+	return get_player(player_number).devices
+
+## Players whose remap should be written: just player_number, or every player for 0
+func _remap_target_players(player_number: int) -> Array[int]:
+	if player_number == 0:
+		var all_players: Array[int] = []
+		for n in range(1, InputRelay.MAX_PLAYERS + 1):
+			all_players.append(n)
+		return all_players
+	return [player_number]
+
+## Polls devices each frame for a newly pressed button. Ignores anything already
 ## held when listening starts. Returns {accepted, is_key_mouse, key_mouse_button/joy_button}
-func _await_next_button(player: InputRelayPlayer, timeout_seconds: float,
+func _await_next_button(listen_devices: Array[InputRelayDevice], timeout_seconds: float,
 						escape_key_mouse_buttons: Array[InputActionDef.MouseKeyButton],
 						escape_joy_buttons: Array[InputActionDef.JoypadButton]
 						) -> Dictionary:
 	var deadline_msec := Time.get_ticks_msec() + int(timeout_seconds * 1000.0)
-	var has_keyboard := player.devices.any(func(device): return device.index == KEYBOARD_INDEX)
+	var has_keyboard := listen_devices.any(func(device): return device.index == KEYBOARD_INDEX)
 	var joy_device_ids: Array[int] = []
-	for device in player.devices:
+	for device in listen_devices:
 		if device.index != KEYBOARD_INDEX:
 			joy_device_ids.append(device.index)
 	
