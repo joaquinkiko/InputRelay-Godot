@@ -239,3 +239,34 @@ func get_device_owner(device_id: int) -> int:
 				return 0
 			return device.player.number
 	return 0
+
+## Changes player's active action set. Clears active layers since they belong to the old set.
+func set_player_action_set(player_number: int, set_key: StringName) -> void:
+	if player_number <= 0 || player_number > InputRelay.MAX_PLAYERS:
+		push_error("Player number out of range for set change: %d" % player_number)
+		return
+	if not settings.action_sets.has(set_key):
+		push_error("No InputActionSet found for key %s" % set_key)
+		return
+	var player := get_player(player_number)
+	player.current_action_set = set_key
+	player.current_action_layers.clear()
+	remapper.refresh_mappings()
+
+## Changes player's active layers. Must be part of player's current set.
+## Pass empty array to clear layers. First layers in array have lowest priority.
+func set_player_action_layers(player_number: int, layer_keys: Array[StringName]) -> void:
+	if player_number <= 0 || player_number > InputRelay.MAX_PLAYERS:
+		push_error("Player number out of range for set change: %d" % player_number)
+		return
+	var player := get_player(player_number)
+	var action_set: InputActionSet = settings.action_sets.get(player.current_action_set)
+	if action_set == null:
+		push_error("Player has no valid action set assigned")
+		return
+	for layer_key in layer_keys:
+		if not action_set.layers.has(layer_key):
+			push_error("No layer found for key %s in set %s" % [layer_key, player.current_action_set])
+			return
+	player.current_action_layers = layer_keys
+	remapper.refresh_mappings()
