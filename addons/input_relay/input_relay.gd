@@ -49,7 +49,8 @@ func _ready() -> void:
 	for n in players.size():
 		# Assign number starting at 1
 		players[n] = InputRelayPlayer.new(n + 1)
-		players[n].current_action_set = settings.default_action_set
+	# Setup remapper
+	remapper = InputRelayMapper.new()
 	# Setup device connections
 	Input.joy_connection_changed.connect(_joy_connection_changed)
 	for id in Input.get_connected_joypads():
@@ -59,8 +60,10 @@ func _ready() -> void:
 			_register_device(KEYBOARD_INDEX, "Keyboard & Mouse")
 		_:
 			pass
-	# Setup remapper, and load initial mappings
-	remapper = InputRelayMapper.new()
+	# Set player action sets to defaults
+	for n in players.size():
+		set_player_action_set(n + 1, settings.default_action_set)
+	# Load initial mappings
 	remapper.refresh_mappings()
 
 func _input(event: InputEvent) -> void:
@@ -264,6 +267,9 @@ func set_player_action_set(player_number: int, set_key: StringName) -> void:
 	var player := get_player(player_number)
 	player.current_action_set = set_key
 	player.current_action_layers.clear()
+	if has_mouse_and_keyboard_assigned(player_number): # Update mouse mode if keyboard player
+		var using_joy := player.last_device != KEYBOARD_INDEX
+		get_player_action_set_and_layers(player_number).pop_back().apply_mouse_mode(using_joy)
 	remapper.refresh_mappings()
 
 ## Changes player's active layers. Must be part of player's current set.
@@ -282,29 +288,37 @@ func set_player_action_layers(player_number: int, layer_keys: Array[StringName])
 			push_error("No layer found for key %s in set %s" % [layer_key, player.current_action_set])
 			return
 	player.current_action_layers = layer_keys
+	if has_mouse_and_keyboard_assigned(player_number): # Update mouse mode if keyboard player
+		var using_joy := player.last_device != KEYBOARD_INDEX
+		get_player_action_set_and_layers(player_number).pop_back().apply_mouse_mode(using_joy)
 	remapper.refresh_mappings()
 
-## Waits for next input from player's devices, remaps [param action_name] to it.
-## Player 0 accepts input from any device and overwrites the remap for all players.
-## Returns true if a remap was applied, false on timeout or escape button. Call with await.
-func remap_button_await(set_key: StringName, layer_key: StringName, action_name: StringName,
-						player_number: int, timeout_seconds: float = 5.0,
-						escape_key_mouse_buttons: Array[InputActionDef.MouseKeyButton] = _DEFAULT_REMAP_ESCAPE_KEYBOARD,
-						escape_joy_buttons: Array[InputActionDef.JoypadButton] = _DEFAULT_REMAP_ESCAPE_JOY
-						) -> bool:
-	if player_number < 0 || player_number > InputRelay.MAX_PLAYERS:
-		push_error("Player number out of range for set change: %d" % player_number)
+## Returns true if player has Mouse and Keyboard assigned to them.
+func has_mouse_and_keyboard_assigned(player_number: int) -> bool:
+	if player_number <= 0 || player_number > InputRelay.MAX_PLAYERS:
+		push_error("Player number out of range to check device assignments: %d" % player_number)
 		return false
-	var devices := _remap_devices_for_player(player_number)
-	var result := await _await_next_button(devices, timeout_seconds, escape_key_mouse_buttons, escape_joy_buttons)
-	if not result["accepted"]:
-		return false
-	for target_player in _remap_target_players(player_number):
-		if result["is_key_mouse"]:
-			remapper.remap_key_mouse(set_key, layer_key, action_name, target_player, result["key_mouse_button"])
-		else:
-			remapper.remap_joy_button(set_key, layer_key, action_name, target_player, result["joy_button"])
-	return true
+	var player := get_player(player_number)
+	for device in player.devices:
+		if device.index == KEYBOARD_INDEX:
+			return true
+	return false
+
+## Returns player's action set and layers. Action set will be in index 0 of array.
+func get_player_action_set_and_layers(player_number: int) -> Array[InputActionSet]:
+	var output: Array[InputActionSet] = []
+	if player_number <= 0 || player_number > InputRelay.MAX_PLAYERS:
+		push_error("Player number out of range to get action set: %d" % player_number)
+		return []
+	var player := get_player(player_number)
+	var action_set: InputActionSet = settings.action_sets.get(player.current_action_set)
+	if action_set == null:
+		push_error("Player has no valid action set assigned")
+		return []
+	for layer_key in player.current_action_layers:
+		if action_set.layers.has(layer_key):
+			output.append(action_set.layers[layer_key])
+	return output
 
 ## Waits for next input, remaps dpad's up direction. Player 0 accepts any device and overwrites
 ## for all players. Returns true if applied. Call with await.
