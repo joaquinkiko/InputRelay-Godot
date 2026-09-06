@@ -487,42 +487,35 @@ func _poll_pressed_joy_button(device_id: int) -> InputActionDef.JoypadButton:
 	return InputActionDef.JoypadButton.NONE
 
 ## Returns the display glyph for an action, based on player's last used device.
-## [param direction] is used for directionals, where 0=up, 1=down, 2=left, 3=right, and -1=unspecified.
 ## Will use [member DeviceGlyphMap.fallback_glyph] if input is null.
-func get_player_action_glyph(player_number: int, action_name: StringName, direction: int = -1) -> Texture2D:
-	direction = clampi(direction, -1, 3)
+func get_player_action_glyph(player_number: int, action_name: StringName) -> Texture2D:
 	if player_number <= 0 || player_number > InputRelay.MAX_PLAYERS:
 		push_error("Player number out of range to grab action glyph: %d" % player_number)
 		return null
 	var device := get_device(get_player(player_number).last_device)
 	if device == null || device.glyph_map == null:
 		return null
-	var button_name := _get_player_action_button_name(player_number, action_name, device.index == KEYBOARD_INDEX, direction)
+	var button_name := _get_player_action_button_name(player_number, action_name, device.index == KEYBOARD_INDEX)
 	var glyph: Texture2D = device.glyph_map.get("%s_glyph"%button_name)
 	if glyph == null:
 		return device.glyph_map.fallback_glyph
 	return glyph
 
 ## Returns the display string for an action, based on player's last used device.
-## [param direction] is used for directionals, where 0=up, 1=down, 2=left, 3=right, and -1=unspecified.
-func get_player_action_string(player_number: int, action_name: StringName, direction: int = -1) -> StringName:
-	direction = clampi(direction, -1, 3)
+func get_player_action_string(player_number: int, action_name: StringName) -> StringName:
 	if player_number <= 0 || player_number > InputRelay.MAX_PLAYERS:
 		push_error("Player number out of range to grab action glyph string: %d" % player_number)
 		return &""
 	var device := get_device(get_player(player_number).last_device)
 	if device == null || device.glyph_map == null:
 		return &""
-	var button_name := _get_player_action_button_name(player_number, action_name, device.index == KEYBOARD_INDEX, direction)
+	var button_name := _get_player_action_button_name(player_number, action_name, device.index == KEYBOARD_INDEX)
 	if button_name.is_empty():
 		return &""
 	return device.glyph_map.get("%s_string"%button_name)
 
 ## Resolves an action's currently bound button, respecting remaps, as a [DeviceGlyphMap] property prefix.
-## [param direction] is used for directionals, where 0=up, 1=down, 2=left, 3=right, and -1=unspecified.
-func _get_player_action_button_name(player_number: int, action_name: StringName,
-									is_keyboard: bool, direction: int = -1) -> String:
-	direction = clampi(direction, -1, 3)
+func _get_player_action_button_name(player_number: int, action_name: StringName, is_keyboard: bool) -> String:
 	# Find InputActionDef...
 	var player := get_player(player_number)
 	if player == null: return ""
@@ -538,26 +531,14 @@ func _get_player_action_button_name(player_number: int, action_name: StringName,
 	if action_def == null: return ""
 	# ....We can now resolve the name
 	if action_def is InputActionDefStickPad || action_def is InputActionDefDpad:
-		# Mouse and Joy-motion take preference over directional buttons for unspecified direction
+		# _get_player_directional_action_button_name should be used to fetch directionals, just grab up
 		if is_keyboard:
-			if direction == -1:
-				if action_def is InputActionDefStickPad && action_def.mouse_motion:
-					return "mouse"
-				else: # Fallback to up direction
-					direction = 0
-			var button := remapper.get_remap_directional_key_mouse(player.current_action_set,layer_key, action_name, player_number)[direction]
+			var button := remapper.get_remap_directional_key_mouse(player.current_action_set,layer_key, action_name, player_number)[0]
 			if button == InputActionDef.MouseKeyButton.NONE:
 				return ""
 			return InputActionDef.mouse_key_button_to_string(button).to_lower()
 		else: # Is joy
-			if direction == -1:
-				if action_def is InputActionDefStickPad:
-					var button := remapper.get_remap_directional_joy_motion(player.current_action_set, layer_key, action_name, player_number)
-					if button != InputActionDef.JoypadButton.NONE:
-						return InputActionDef.joypad_motion_to_string(button).to_lower()
-					else: # Fallback to up direction
-						direction = 0
-			var button := remapper.get_remap_directional_joy_button(player.current_action_set, layer_key, action_name, player_number)[direction]
+			var button := remapper.get_remap_directional_joy_button(player.current_action_set, layer_key, action_name, player_number)[0]
 			if button == InputActionDef.JoypadButton.NONE:
 				return ""
 			return InputActionDef.joypad_button_to_string(button).to_lower()
@@ -571,3 +552,116 @@ func _get_player_action_button_name(player_number: int, action_name: StringName,
 		if button == InputActionDef.JoypadButton.NONE:
 			return ""
 		return InputActionDef.joypad_button_to_string(button).to_lower()
+
+## Returns the display glyph for an action, based on player's last used device, for directional actions.
+## [param direction] can specify "up", "down", "left", "right", or be left blank for unspecified direction.
+## Will fallback to unspecified direction, or use [member DeviceGlyphMap.fallback_glyph] if input is null.
+func get_player_directional_action_glyph(player_number: int, action_name: StringName, direction: String = "") -> Texture2D:
+	direction = direction.to_lower()
+	match direction:
+		"up", "down", "left", "right":
+			pass # No change needed
+		_:
+			direction = "" # Unknown direction, treat as blank
+	if player_number <= 0 || player_number > InputRelay.MAX_PLAYERS:
+		push_error("Player number out of range to grab action glyph: %d" % player_number)
+		return null
+	var device := get_device(get_player(player_number).last_device)
+	if device == null || device.glyph_map == null:
+		return null
+	var button_name := _get_player_directional_action_button_name(player_number, action_name,
+		device.index == KEYBOARD_INDEX, direction)
+	var glyph: Texture2D = device.glyph_map.get("%s_glyph"%button_name)
+	if glyph == null:
+		if !direction.is_empty(): # Try fallback to unspecified direction
+			glyph = device.glyph_map.get("%s_glyph"%button_name.trim_suffix("_%s"%direction))
+			if glyph == null: # Still null?
+				return device.glyph_map.fallback_glyph
+	return glyph
+
+## Returns the display string for an action, based on player's last used device, for directional actions.
+## [param direction] can specify "up", "down", "left", "right", or be left blank for unspecified direction.
+func get_player_directional_action_string(player_number: int, action_name: StringName, direction: String = "") -> StringName:
+	direction = direction.to_lower()
+	match direction:
+		"up", "down", "left", "right":
+			pass # No change needed
+		_:
+			direction = "" # Unknown direction, treat as blank
+	if player_number <= 0 || player_number > InputRelay.MAX_PLAYERS:
+		push_error("Player number out of range to grab action glyph string: %d" % player_number)
+		return &""
+	var device := get_device(get_player(player_number).last_device)
+	if device == null || device.glyph_map == null:
+		return &""
+	var button_name := _get_player_directional_action_button_name(player_number, action_name,
+		device.index == KEYBOARD_INDEX, direction)
+	if button_name.is_empty():
+		return &""
+	return device.glyph_map.get("%s_string"%button_name)
+
+## Resolves a directional action's currently bound button, respecting remaps, as a [DeviceGlyphMap] property prefix.
+## [param direction] can specify "up", "down", "left", "right", or be left blank for unspecified direction.
+func _get_player_directional_action_button_name(player_number: int, action_name: StringName, is_keyboard: bool, direction: String = "") -> String:
+	direction = direction.to_lower()
+	match direction:
+		"up", "down", "left", "right":
+			pass # No change needed
+		_:
+			direction = "" # Unknown direction, treat as blank
+	# Find InputActionDef...
+	var player := get_player(player_number)
+	if player == null: return ""
+	var action_set: InputActionSet = settings.action_sets.get(player.current_action_set)
+	if action_set == null: return ""
+	var action_def: InputActionDef = action_set.actions.get(action_name)
+	var layer_key: StringName = &""
+	for active_layer in player.current_action_layers:
+		var layer: InputActionSet = action_set.layers.get(active_layer)
+		if layer != null && layer.actions.has(action_name):
+			action_def = layer.actions[action_name]
+			layer_key = active_layer
+	if action_def == null: return ""
+	# ....We can now resolve the name
+	if action_def is InputActionDefStickPad || action_def is InputActionDefDpad:
+		if is_keyboard: # Prefer mouse if available
+			if action_def is InputActionDefStickPad && action_def.mouse_motion:
+				if direction.is_empty():
+					return &"mouse_motion"
+				else:
+					return &"mouse_%s"%direction
+			else: # Fallback to digital input
+				var index: int
+				match direction:
+					"up": index = 0
+					"down": index = 1
+					"left": index = 2
+					"right": index = 3
+					_: index = 0 # Up is default for unspecified
+				var button := remapper.get_remap_directional_key_mouse(player.current_action_set,layer_key, action_name, player_number)[index]
+				if button == InputActionDef.MouseKeyButton.NONE:
+					return ""
+				return InputActionDef.mouse_key_button_to_string(button).to_lower()
+		else: # Is joy
+			if action_def is InputActionDefStickPad:
+				var motion := remapper.get_remap_directional_joy_motion(player.current_action_set, layer_key, action_name, player_number)
+				if motion != InputActionDef.JoypadMotion.NONE:
+					if direction.is_empty():
+						return InputActionDef.joypad_motion_to_string(motion).to_lower()
+					else:
+						return "%s_%s"%[InputActionDef.joypad_motion_to_string(motion).to_lower(), direction]
+			else: # Fallback to digital input
+				var index: int
+				match direction:
+					"up": index = 0
+					"down": index = 1
+					"left": index = 2
+					"right": index = 3
+					_: index = 0 # Up is default for unspecified
+				var button := remapper.get_remap_directional_joy_button(player.current_action_set,layer_key, action_name, player_number)[index]
+				if button != InputActionDef.JoypadButton.NONE:
+					if direction.is_empty():
+						return InputActionDef.joypad_button_to_string(button).to_lower()
+					else:
+						return "%s_%s"%[InputActionDef.joypad_button_to_string(button).to_lower(), direction]
+	return "" # Couldn't resolve

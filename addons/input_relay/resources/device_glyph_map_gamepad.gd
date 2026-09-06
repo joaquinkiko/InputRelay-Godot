@@ -30,11 +30,6 @@ class_name DeviceGlyphMapGamepad extends DeviceGlyphMap
 @export var dpad_right_string: StringName = "D-Pad Right"
 
 @export_group("Sticks")
-@export var left_stick_glyph: Texture2D
-@export var left_stick_string: StringName = "Left Stick"
-@export var right_stick_glyph: Texture2D
-@export var right_stick_string: StringName = "Right Stick"
-@export var left_stick_press_glyph: Texture2D
 @export var left_stick_press_string: StringName = "Left Stick Click"
 @export var right_stick_press_glyph: Texture2D
 @export var right_stick_press_string: StringName = "Right Stick Click"
@@ -72,5 +67,35 @@ class_name DeviceGlyphMapGamepad extends DeviceGlyphMap
 @export var paddle4_string: StringName = "Paddle 4"
 @export var touchpad_glyph: Texture2D
 @export var touchpad_string: StringName = "Touchpad"
+
+@export_group("Motion")
+@export var left_stick_glyph: Texture2D
+@export var left_stick_string: StringName = "Left Stick"
+@export var left_stick_up_glyph: Texture2D
+@export var left_stick_up_string: StringName = "Left Stick Up"
+@export var left_stick_down_glyph: Texture2D
+@export var left_stick_down_string: StringName = "Left Stick Down"
+@export var left_stick_left_glyph: Texture2D
+@export var left_stick_left_string: StringName = "Left Stick Left"
+@export var left_stick_right_glyph: Texture2D
+@export var left_stick_right_string: StringName = "Left Stick Right"
+@export var right_stick_glyph: Texture2D
+@export var right_stick_string: StringName = "Right Stick"
+@export var right_stick_up_glyph: Texture2D
+@export var right_stick_up_string: StringName = "Right Stick Up"
+@export var right_stick_down_glyph: Texture2D
+@export var right_stick_down_string: StringName = "Right Stick Down"
+@export var right_stick_left_glyph: Texture2D
+@export var right_stick_left_string: StringName = "Right Stick Left"
+@export var right_stick_right_glyph: Texture2D
+@export var right_stick_right_string: StringName = "Right Stick Right"
 @export var gyro_glyph: Texture2D
 @export var gyro_string: StringName = "Motion"
+@export var gyro_up_glyph: Texture2D
+@export var gyro_up_string: StringName = "Motion Up"
+@export var gyro_down_glyph: Texture2D
+@export var gyro_down_string: StringName = "Motion Down"
+@export var gyro_left_glyph: Texture2D
+@export var gyro_left_string: StringName = "Motion Left"
+@export var gyro_right_glyph: Texture2D
+@export var gyro_right_string: StringName = "Motion Right"

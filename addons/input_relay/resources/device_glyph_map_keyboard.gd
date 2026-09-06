@@ -2,8 +2,16 @@
 class_name DeviceGlyphMapKeyboard extends DeviceGlyphMap
 
 @export_group("Mouse Motion")
-@export var mouse_glyph: Texture2D
-@export var mouse_string: StringName = "Mouse"
+@export var mouse_motion_glyph: Texture2D
+@export var mouse_motion_string: StringName = "Mouse"
+@export var mouse_motion_up_glyph: Texture2D
+@export var mouse_motion_up_string: StringName = "Mouse Up"
+@export var mouse_motion_down_glyph: Texture2D
+@export var mouse_motion_down_string: StringName = "Mouse Down"
+@export var mouse_motion_left_glyph: Texture2D
+@export var mouse_motion_left_string: StringName = "Mouse Left"
+@export var mouse_motion_right_glyph: Texture2D
+@export var mouse_motion_right_string: StringName = "Mouse Right"
 
 @export_group("Mouse Buttons")
 @export var mouse_left_glyph: Texture2D
