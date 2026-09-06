@@ -665,3 +665,23 @@ func _get_player_directional_action_button_name(player_number: int, action_name:
 					else:
 						return "%s_%s"%[InputActionDef.joypad_button_to_string(button).to_lower(), direction]
 	return "" # Couldn't resolve
+
+## Returns the display glyph for last device, used by player.
+func get_player_device_glyph(player_number: int) -> Texture2D:
+	if player_number <= 0 || player_number > InputRelay.MAX_PLAYERS:
+		push_error("Player number out of range to grab device glyph: %d" % player_number)
+		return null
+	var device := get_device(get_player(player_number).last_device)
+	if device == null || device.glyph_map == null:
+		return null
+	return device.glyph_map.device_glyph
+
+## Returns the name glyph for last device, used by player.
+func get_player_device_string(player_number: int) -> StringName:
+	if player_number <= 0 || player_number > InputRelay.MAX_PLAYERS:
+		push_error("Player number out of range to grab device string: %d" % player_number)
+		return &""
+	var device := get_device(get_player(player_number).last_device)
+	if device == null || device.glyph_map == null:
+		return &""
+	return device.name
