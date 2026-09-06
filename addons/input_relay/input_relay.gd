@@ -120,6 +120,8 @@ func assign_device(device_id: int, player_number: int) -> void:
 		unassign_device(device_id, device.player.number)
 	player.devices.append(device)
 	device.player = player
+	if device.supports_lights():
+		Input.set_joy_light(device.index, player.color)
 	remapper.refresh_mappings()
 
 func unassign_device(device_id: int, player_number: int) -> void:
@@ -134,6 +136,8 @@ func unassign_device(device_id: int, player_number: int) -> void:
 	# Stop any vibration
 	if Input.get_connected_joypads().has(device_id):
 		Input.stop_joy_vibration(device_id)
+	if device.supports_lights():
+		Input.set_joy_light(device.index, Color.WHITE)
 	remapper.refresh_mappings()
 
 func clear_devices(player_number: int) -> void:

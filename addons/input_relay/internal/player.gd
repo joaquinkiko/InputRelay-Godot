@@ -6,7 +6,14 @@ var number: int
 ## Currently assigned devices
 var devices: Array[InputRelayDevice]
 ## Color for use by gamepad lights
-var color := Color.WHITE
+var color: Color:
+	get: return _color
+	set(value):
+		_color = value
+		for device in devices:
+			if device.supports_lights():
+				Input.set_joy_light(device.index, color)
+var _color := Color.WHITE
 ## Key of currently active action set
 var current_action_set: StringName
 ## Key(s) of currently active layers on action set
