@@ -98,6 +98,7 @@ func _map_stick_direction(set_key: StringName, layer_key: StringName, action_nam
 	var direction_index := _STICK_DIRECTIONS.find(direction)
 	var mouse_key_button: InputActionDef.MouseKeyButton = get_remap_directional_key_mouse(set_key, layer_key, action_name, player.number)[direction_index]
 	var axes := InputActionDef.joypad_motion_to_joy_axes(get_remap_directional_joy_motion(set_key, layer_key, action_name, player.number))
+	var joy_button: InputActionDef.JoypadButton = get_remap_directional_joy_button(set_key, layer_key, action_name, player.number)[direction_index]
 	var is_horizontal := direction == &"left" || direction == &"right"
 	var invert := get_remap_update_invert_x(set_key, layer_key, action_name, player.number) if is_horizontal else get_remap_update_invert_y(set_key, layer_key, action_name, player.number)
 	var negative := direction == &"left" || direction == &"up"
@@ -112,12 +113,14 @@ func _map_stick_direction(set_key: StringName, layer_key: StringName, action_nam
 		for device in player.devices:
 			if device.index == InputRelay.KEYBOARD_INDEX:
 				_add_key_mouse_event(full_name, mouse_key_button, device.index)
-			elif axes.size() == 2:
-				var event := InputEventJoypadMotion.new()
-				event.device = device.index
-				event.axis = axes[0] if is_horizontal else axes[1]
-				event.axis_value = sign
-				InputMap.action_add_event(full_name, event)
+			else:
+				_add_joy_button_event(full_name, joy_button, device.index)
+				if axes.size() == 2:
+					var event := InputEventJoypadMotion.new()
+					event.device = device.index
+					event.axis = axes[0] if is_horizontal else axes[1]
+					event.axis_value = sign
+					InputMap.action_add_event(full_name, event)
 
 ## Registers one directional sub-action for a dpad: "[name]_[direction][suffix]"
 func _map_dpad_direction(set_key: StringName, layer_key: StringName, action_name: StringName, direction: StringName, player: InputRelayPlayer) -> void:
