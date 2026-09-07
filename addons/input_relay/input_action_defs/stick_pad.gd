@@ -1,5 +1,5 @@
 ## [InputActionDef] for normalized directional input
-class_name InputActionDefStickPad extends InputActionDefDpad
+class_name InputActionDefStickPad extends InputActionDefDirectional
 
 @export_group("Default Bindings")
 @export var mouse_motion: bool = false

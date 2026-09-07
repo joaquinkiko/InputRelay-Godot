@@ -548,7 +548,7 @@ func _get_player_action_button_name(player_number: int, action_name: StringName,
 			layer_key = active_layer
 	if action_def == null: return ""
 	# ....We can now resolve the name
-	if action_def is InputActionDefStickPad || action_def is InputActionDefDpad:
+	if action_def is InputActionDefStickPad || action_def is InputActionDefDirectional:
 		# _get_player_directional_action_button_name should be used to fetch directionals, just grab up
 		if is_keyboard:
 			var button := remapper.get_remap_directional_key_mouse(player.current_action_set,layer_key, action_name, player_number)[0]
@@ -641,7 +641,7 @@ func _get_player_directional_action_button_name(player_number: int, action_name:
 			layer_key = active_layer
 	if action_def == null: return ""
 	# ....We can now resolve the name
-	if action_def is InputActionDefStickPad || action_def is InputActionDefDpad:
+	if action_def is InputActionDefStickPad || action_def is InputActionDefDirectional:
 		if is_keyboard: # Prefer mouse if available
 			if action_def is InputActionDefStickPad && action_def.mouse_motion:
 				if direction.is_empty():

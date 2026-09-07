@@ -76,7 +76,7 @@ func _map_action(set_key: StringName, layer_key: StringName, action_name: String
 		for direction in _STICK_DIRECTIONS: # Need to map multiple directions
 			_map_stick_direction(set_key, layer_key, action_name, direction, action_def, player)
 		return
-	if action_def is InputActionDefDpad:
+	if action_def is InputActionDefDirectional:
 		for direction in _STICK_DIRECTIONS: # Need to map multiple directions
 			_map_dpad_direction(set_key, layer_key, action_name, direction, player)
 		return
@@ -332,7 +332,7 @@ func remap_directional_joy_button(set_key: StringName, layer: StringName, action
 	var action_def := _validate_remap_target(set_key, layer, action, player)
 	if action_def == null:
 		return
-	if not (action_def is InputActionDefDpad):
+	if not (action_def is InputActionDefDirectional):
 		push_error("Action at %s is not a Dpad action" % _remap_key(set_key, layer, action))
 		return
 	var default_values := [
@@ -368,7 +368,7 @@ func get_remap_directional_joy_button(set_key: StringName, layer: StringName, ac
 		for value in values:
 			result.append(InputActionDef.string_to_joypad_button(value))
 		return result
-	if action_def is InputActionDefDpad:
+	if action_def is InputActionDefDirectional:
 		return [action_def.up_joy_button, action_def.down_joy_button, action_def.left_joy_button, action_def.right_joy_button]
 	return default_result
 
@@ -377,7 +377,7 @@ func remap_directional_key_mouse(set_key: StringName, layer: StringName, action:
 	var action_def := _validate_remap_target(set_key, layer, action, player)
 	if action_def == null:
 		return
-	if not (action_def is InputActionDefStickPad || action_def is InputActionDefDpad):
+	if not (action_def is InputActionDefStickPad || action_def is InputActionDefDirectional):
 		push_error("Action at %s does not support directional key/mouse remapping" % _remap_key(set_key, layer, action))
 		return
 	var default_values := [
@@ -413,7 +413,7 @@ func get_remap_directional_key_mouse(set_key: StringName, layer: StringName, act
 		for value in values:
 			result.append(InputActionDef.string_to_mouse_key_button(value))
 		return result
-	if action_def is InputActionDefStickPad || action_def is InputActionDefDpad:
+	if action_def is InputActionDefStickPad || action_def is InputActionDefDirectional:
 		return [action_def.up_mouse_key_button, action_def.down_mouse_key_button, action_def.left_mouse_key_button, action_def.right_mouse_key_button]
 	return default_result
 

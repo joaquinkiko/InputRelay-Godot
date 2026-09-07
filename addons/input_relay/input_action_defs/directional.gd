@@ -1,5 +1,5 @@
 ## [InputActionDef] for simple 4-way directional input
-class_name InputActionDefDpad extends InputActionDef
+class_name InputActionDefDirectional extends InputActionDef
 
 @export_group("Default Bindings")
 @export_group("Up", "up_")
