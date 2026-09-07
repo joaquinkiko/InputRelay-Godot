@@ -5,6 +5,9 @@ extends Node
 signal device_connected(id: int)
 ## Emitted when device is disconnected, may contain owner's number, or 0 for no owner
 signal device_disconnected(id: int, owner: int)
+## Emitted right before a player's last used device changes, best used to
+## detect when player switches joy-keyboard and vice-versa.
+signal switch_current_device_type(player_number: int, old_device: int, new_device: int)
 
 const KEYBOARD_INDEX := InputEvent.DEVICE_ID_KEYBOARD
 
@@ -70,11 +73,21 @@ func _input(event: InputEvent) -> void:
 	# Udpdate information on last player and device input has been received from
 	# This information is important for knowing what glyphs to use for players
 	last_player_input = get_device_owner(event.device)
+	var player := get_player(last_player_input)
 	if last_player_input != 0:
 		if event.device == InputEvent.DEVICE_ID_MOUSE || event.device == InputEvent.DEVICE_ID_KEYBOARD:
-			get_player(last_player_input).last_device = KEYBOARD_INDEX
+			if player.last_device != KEYBOARD_INDEX:
+				switch_current_device_type.emit(player.number, player.last_device, KEYBOARD_INDEX)
+				# Ungrab focusable since we're using mouse now. Just looks better.
+				deselect_focusable()
+				player.last_device = KEYBOARD_INDEX
 		else:
-			get_player(last_player_input).last_device = event.device
+			if player.last_device != event.device:
+				switch_current_device_type.emit(player.number, player.last_device, event.device)
+				# If switching mouse->joy we need to grab focusable, so UI is joy accessible
+				if player.last_device == KEYBOARD_INDEX:
+					grab_first_focusable()
+				player.last_device = event.device
 
 func _joy_connection_changed(device_id: int, connected: bool) -> void:
 	if connected:
@@ -703,3 +716,26 @@ func get_player_device_string(player_number: int) -> StringName:
 	if device == null || device.glyph_map == null:
 		return &""
 	return device.name
+
+## Grabs focus on first focusable Control found in scene tree (depth-first).
+## Call when player swaps from keyboard/mouse to controller, so UI has something selected.
+func grab_first_focusable() -> void:
+	var control := _find_first_focusable(get_tree().root)
+	if control == null:
+		return # Nothing needs to be focused
+	control.grab_focus()
+
+## Releases focus from whatever Control is currently selected in tree's viewport.
+## Call when player swaps to keyboard/mouse, so no button is left highlighted.
+func deselect_focusable() -> void:
+	get_tree().root.get_viewport().gui_release_focus()
+
+## Recursively searches for the first Control that can take focus
+func _find_first_focusable(node: Node) -> Control:
+	if node is Control && node.focus_mode != Control.FOCUS_NONE && node.is_visible_in_tree():
+		return node
+	for child in node.get_children():
+		var found := _find_first_focusable(child)
+		if found != null:
+			return found
+	return null
