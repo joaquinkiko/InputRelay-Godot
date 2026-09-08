@@ -1,6 +1,8 @@
 ## Builds and refreshes InputMap actions from an InputRelay's players and settings
 class_name InputRelayMapper extends RefCounted
 
+signal refreshed_mappings
+
 ## Directions generated for each [InputActionDefStickPad]
 const _STICK_DIRECTIONS: Array[StringName] = [&"up", &"down", &"left", &"right"]
 
@@ -72,6 +74,7 @@ func refresh_mappings() -> void:
 		
 		for action_key in actions:
 			_map_action(player.current_action_set, action_layers[action_key], action_key, actions[action_key], player)
+	refreshed_mappings.emit()
 
 ## Refreshes action translations
 func refresh_translations() -> void:

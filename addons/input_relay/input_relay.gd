@@ -104,6 +104,7 @@ func _input(event: InputEvent) -> void:
 					grab_first_focusable()
 				player.last_device = event.device
 				remapper.refresh_translations()
+	
 
 func _joy_connection_changed(device_id: int, connected: bool) -> void:
 	if connected:
