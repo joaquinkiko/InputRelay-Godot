@@ -40,6 +40,9 @@ var remapper: InputRelayMapper
 ## Last player to receive input from, or 0 if received from unassigned device
 var last_player_input: int
 
+## Number of player awaiting assignment from next device. 0 if none waiting.
+var player_awaiting_assignment: int = 0
+
 func _ready() -> void:
 	# Get settings
 	settings = ProjectSettings.get_setting("InputRelay/settings_resource", InputRelaySettings.new())
@@ -72,6 +75,11 @@ func _ready() -> void:
 	remapper.refresh_translations()
 
 func _input(event: InputEvent) -> void:
+	# Check device assignment
+	if player_awaiting_assignment != 0:
+		if get_device(event.device).player == null:
+			assign_device(event.device, player_awaiting_assignment)
+			player_awaiting_assignment = 0
 	# Udpdate information on last player and device input has been received from
 	# This information is important for knowing what glyphs to use for players
 	last_player_input = get_device_owner(event.device)
@@ -745,3 +753,14 @@ func _find_first_focusable(node: Node) -> Control:
 		if found != null:
 			return found
 	return null
+
+## Waits for input from any unassigned device, then assigns it to [param player_number]
+func await_and_assign_device(player_number: int) -> void:
+	if player_number <= 0 || player_number > InputRelay.MAX_PLAYERS:
+		push_error("Player number out of range to await assignment: %d" % player_number)
+		return
+	player_awaiting_assignment = player_number
+
+## Stops [method await_and_assign_device]
+func stop_awaiting_device_assign() -> void:
+	player_awaiting_assignment = 0
