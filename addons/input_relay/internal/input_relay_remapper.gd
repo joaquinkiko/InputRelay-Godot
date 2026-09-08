@@ -80,13 +80,27 @@ func refresh_translations() -> void:
 		TranslationServer.remove_translation(translation)
 	translations.clear()
 	# Translate sets
+	var base_locale: String = TranslationServer.get_locale()
+	var loaded_locales: PackedStringArray = TranslationServer.get_loaded_locales()
 	for set_key in InputRelay.settings.action_sets:
 		var action_set: InputActionSet = InputRelay.settings.action_sets.get(set_key)
 		if action_set == null: continue
+		_get_translation(base_locale).add_message(&"SET_%s"%set_key.to_upper(), set_key.capitalize())
+		for locale in loaded_locales:
+			if action_set.localizations.has(locale):
+				_get_translation(locale).add_message(&"SET_%s"%set_key.to_upper(), action_set.localizations[locale])
+			else:
+				_get_translation(locale).add_message(&"SET_%s"%set_key.to_upper(), set_key.capitalize())
 		_load_action_set_translation(set_key, &"", action_set)
 		for layer_key in action_set.layers:
 			var action_layer: InputActionSet = action_set.layers.get(layer_key)
 			if action_layer == null: continue
+			_get_translation(base_locale).add_message(&"LAYER_%s"%layer_key.to_upper(), layer_key.capitalize())
+			for locale in loaded_locales:
+				if action_set.localizations.has(locale):
+					_get_translation(locale).add_message(&"LAYER_%s"%layer_key.to_upper(), action_set.localizations[locale])
+				else:
+					_get_translation(locale).add_message(&"SET_%s"%layer_key.to_upper(), layer_key.capitalize())
 			_load_action_set_translation(set_key, layer_key, action_layer)
 	# Load new translations
 	for translation in translations.values():
@@ -95,17 +109,17 @@ func refresh_translations() -> void:
 func _load_action_set_translation(set_key: StringName, layer_key: StringName, action_set: InputActionSet) -> void:
 	var base_locale: String = TranslationServer.get_locale()
 	var loaded_locales: PackedStringArray = TranslationServer.get_loaded_locales()
-	# Should we key this translation name as a set or layer?
-	if layer_key.is_empty(): # Is a set
-		_get_translation(base_locale).add_message(&"SET_%s"%set_key.to_upper(), set_key.capitalize())
-	else: # Is a layer
-		_get_translation(base_locale).add_message(&"LAYER_%s"%layer_key.to_upper(), layer_key.capitalize())
 	# Load action translations
 	for action_key in action_set.actions:
 		# Key the name of the action
-		_get_translation(base_locale).add_message(&"ACTION_%s"%action_key.to_upper(), action_key.capitalize())
 		var def := action_set.actions[action_key]
 		if def == null: continue
+		_get_translation(base_locale).add_message(&"ACTION_%s"%action_key.to_upper(), action_key.capitalize())
+		for locale in loaded_locales:
+			if action_set.localizations.has(locale):
+				_get_translation(locale).add_message(&"ACTION_%s"%action_key.to_upper(), def.localizations[locale])
+			else:
+				_get_translation(locale).add_message(&"ACTION_%s"%action_key.to_upper(), action_key.capitalize())
 		# Input buttons should be translation agnostic
 		for locale in loaded_locales:
 			if def is InputActionDefDirectional:

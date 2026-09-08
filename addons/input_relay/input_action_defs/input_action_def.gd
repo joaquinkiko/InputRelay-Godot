@@ -38,6 +38,9 @@ enum JoypadMotion{
 	GYRO,
 }
 
+## Alternate localizations for action name
+@export var localizations: Dictionary[StringName, StringName]
+
 ## Converts a [MouseKeyButton] to a [Key]. Returns KEY_NONE if it's a mouse button.
 static func mouse_key_button_to_key(button: MouseKeyButton) -> Key:
 	match button:

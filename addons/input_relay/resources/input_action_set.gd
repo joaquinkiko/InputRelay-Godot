@@ -9,6 +9,9 @@ enum MouseModes {
 	CAPTURED,
 }
 
+## Alternate localizations for set name
+@export var localizations: Dictionary[StringName, StringName]
+
 ## Additional layers that can be activated ontop of this set, sorted by name.
 ## These will be ignored on layers (only top level sets will use this.
 @export var layers: Dictionary[StringName, InputActionSet]
