@@ -61,6 +61,7 @@ func _ready() -> void:
 		players[n] = InputRelayPlayer.new(n + 1)
 	# Setup remapper
 	remapper = InputRelayMapper.new()
+	remapper.refreshed_mappings.connect(_refreshed_mappings)
 	# Setup device connections
 	Input.joy_connection_changed.connect(_joy_connection_changed)
 	for id in Input.get_connected_joypads():
@@ -104,7 +105,15 @@ func _input(event: InputEvent) -> void:
 					grab_first_focusable()
 				player.last_device = event.device
 				remapper.refresh_translations()
+	# TODO: Poll mouse
+	# TODO: Poll gyro
 	
+	# TODO: Normalize directional input
+	# TODO: Apply directional sensitivity
+
+func _refreshed_mappings() -> void:
+	# TODO list actions that need to be polled for and managed in input loop
+	pass
 
 func _joy_connection_changed(device_id: int, connected: bool) -> void:
 	if connected:
