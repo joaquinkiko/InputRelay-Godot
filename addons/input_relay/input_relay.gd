@@ -68,6 +68,8 @@ func _ready() -> void:
 		set_player_action_set(n + 1, settings.default_action_set)
 	# Load initial mappings
 	remapper.refresh_mappings()
+	# Load translations
+	remapper.refresh_translations()
 
 func _input(event: InputEvent) -> void:
 	# Udpdate information on last player and device input has been received from
@@ -81,6 +83,7 @@ func _input(event: InputEvent) -> void:
 				# Ungrab focusable since we're using mouse now. Just looks better.
 				deselect_focusable()
 				player.last_device = KEYBOARD_INDEX
+				remapper.refresh_translations()
 		else:
 			if player.last_device != event.device:
 				switch_current_device_type.emit(player.number, player.last_device, event.device)
@@ -88,6 +91,7 @@ func _input(event: InputEvent) -> void:
 				if player.last_device == KEYBOARD_INDEX:
 					grab_first_focusable()
 				player.last_device = event.device
+				remapper.refresh_translations()
 
 func _joy_connection_changed(device_id: int, connected: bool) -> void:
 	if connected:
@@ -139,6 +143,7 @@ func assign_device(device_id: int, player_number: int) -> void:
 	if device.supports_lights():
 		Input.set_joy_light(device.index, player.color)
 	remapper.refresh_mappings()
+	remapper.refresh_translations()
 
 func unassign_device(device_id: int, player_number: int) -> void:
 	var device := get_device(device_id)
@@ -155,6 +160,7 @@ func unassign_device(device_id: int, player_number: int) -> void:
 	if device.supports_lights():
 		Input.set_joy_light(device.index, Color.WHITE)
 	remapper.refresh_mappings()
+	remapper.refresh_translations()
 
 func clear_devices(player_number: int) -> void:
 	var player := get_player(player_number)

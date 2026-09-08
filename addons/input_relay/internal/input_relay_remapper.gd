@@ -13,6 +13,9 @@ var remap_file: ConfigFile
 ## Path to save/load [member remap_file]
 var remap_file_path: String
 
+## Handles localizations for actions and bindings sorted by language
+var translations: Dictionary[StringName, Translation]
+
 func _init() -> void:
 	# Get remap path from project settings, and load settings if auto loading is enabled
 	remap_file_path = ProjectSettings.get_setting("InputRelay/remap_save_load_path", "user://input_remaps.cfg")
@@ -69,6 +72,111 @@ func refresh_mappings() -> void:
 		
 		for action_key in actions:
 			_map_action(player.current_action_set, action_layers[action_key], action_key, actions[action_key], player)
+
+## Refreshes action translations
+func refresh_translations() -> void:
+	# Unload old translations
+	for translation in translations.values():
+		TranslationServer.remove_translation(translation)
+	translations.clear()
+	# Translate sets
+	for set_key in InputRelay.settings.action_sets:
+		var action_set: InputActionSet = InputRelay.settings.action_sets.get(set_key)
+		if action_set == null: continue
+		_load_action_set_translation(set_key, &"", action_set)
+		for layer_key in action_set.layers:
+			var action_layer: InputActionSet = action_set.layers.get(layer_key)
+			if action_layer == null: continue
+			_load_action_set_translation(set_key, layer_key, action_layer)
+	# Load new translations
+	for translation in translations.values():
+		TranslationServer.add_translation(translation)
+
+func _load_action_set_translation(set_key: StringName, layer_key: StringName, action_set: InputActionSet) -> void:
+	var base_locale: String = TranslationServer.get_locale()
+	var loaded_locales: PackedStringArray = TranslationServer.get_loaded_locales()
+	# Should we key this translation name as a set or layer?
+	if layer_key.is_empty(): # Is a set
+		_get_translation(base_locale).add_message(&"SET_%s"%set_key.to_upper(), set_key.capitalize())
+	else: # Is a layer
+		_get_translation(base_locale).add_message(&"LAYER_%s"%layer_key.to_upper(), layer_key.capitalize())
+	# Load action translations
+	for action_key in action_set.actions:
+		# Key the name of the action
+		_get_translation(base_locale).add_message(&"ACTION_%s"%action_key.to_upper(), action_key.capitalize())
+		var def := action_set.actions[action_key]
+		if def == null: continue
+		# Input buttons should be translation agnostic
+		for locale in loaded_locales:
+			if def is InputActionDefDirectional:
+				for direction in [&"UP", &"DOWN", &"LEFT", &"RIGHT"]:
+					for n in range(1, InputRelay.MAX_PLAYERS + 1):
+						var display := _get_directional_input_string(set_key, layer_key, action_key, direction.to_lower(), n)
+						_get_translation(locale).add_message(&"INPUT_%s_%s%s"%[action_key.to_upper(), direction, n], display)
+						if n == 1:
+							_get_translation(locale).add_message(&"INPUT_%s_%s"%[action_key.to_upper(), direction], display)
+				if def is InputActionDefStickPad:
+					for n in range(1, InputRelay.MAX_PLAYERS + 1):
+						var display := _get_directional_input_string(set_key, layer_key, action_key, "", n)
+						_get_translation(locale).add_message(&"INPUT_%s%s"%[action_key.to_upper(), n], display)
+						if n == 1:
+							_get_translation(locale).add_message(&"INPUT_%s"%[action_key.to_upper()], display)
+			else:
+				for n in range(1, InputRelay.MAX_PLAYERS + 1):
+					var display := _get_input_string(set_key, layer_key, action_key, n)
+					_get_translation(locale).add_message(&"INPUT_%s%s"%[action_key.to_upper(), n], display)
+					if n == 1:
+						_get_translation(locale).add_message(&"INPUT_%s"%[action_key.to_upper()], display)
+
+## Resolves display string for a non-directional action, based on player's last used device
+func _get_input_string(set_key: StringName, layer_key: StringName, action_key: StringName, player_number: int) -> String:
+	var player := InputRelay.get_player(player_number)
+	var device := InputRelay.get_device(player.last_device)
+	if device == null || device.glyph_map == null:
+		return ""
+	if device.index == InputRelay.KEYBOARD_INDEX:
+		var button := get_remap_key_mouse(set_key, layer_key, action_key, player_number)
+		return _resolve_button_string(device.glyph_map, InputActionDef.mouse_key_button_to_string(button))
+	else:
+		var button := get_remap_joy_button(set_key, layer_key, action_key, player_number)
+		return _resolve_button_string(device.glyph_map, InputActionDef.joypad_button_to_string(button))
+
+## Resolves display string for one direction of a Dpad/StickPad action, based on player's last used device
+func _get_directional_input_string(set_key: StringName, layer_key: StringName, action_key: StringName, direction: String, player_number: int) -> String:
+	var direction_index := [&"up", &"down", &"left", &"right"].find(direction)
+	var player := InputRelay.get_player(player_number)
+	var device := InputRelay.get_device(player.last_device)
+	if device == null || device.glyph_map == null:
+		return ""
+	if device.index == InputRelay.KEYBOARD_INDEX:
+		if direction_index == -1:
+			if device.glyph_map is DeviceGlyphMapKeyboard:
+				return device.glyph_map.mouse_motion_string
+			else:
+				return ""
+		var button := get_remap_directional_key_mouse(set_key, layer_key, action_key, player_number)[direction_index]
+		return _resolve_button_string(device.glyph_map, InputActionDef.mouse_key_button_to_string(button))
+	else:
+		if direction_index == -1:
+			var motion := get_remap_directional_joy_motion(set_key, layer_key, action_key, player_number)
+			return _resolve_button_string(device.glyph_map, InputActionDef.joypad_motion_to_string(motion))
+		var button := get_remap_directional_joy_button(set_key, layer_key, action_key, player_number)[direction_index]
+		return _resolve_button_string(device.glyph_map, InputActionDef.joypad_button_to_string(button))
+
+## Looks up a glyph map's "_string" property from an enum name (e.g. "MOUSE_LEFT" -> mouse_left_string)
+func _resolve_button_string(glyph_map: DeviceGlyphMap, enum_name: String) -> String:
+	if enum_name == "NONE" || enum_name.is_empty():
+		return ""
+	var property_key := "%s_string" % enum_name.to_lower()
+	var value = glyph_map.get(property_key)
+	return value if value != null else ""
+
+## Gets [Translation] from [member translations], creating it if needed
+func _get_translation(locale: String) -> Translation:
+	if not translations.has(locale):
+		translations[locale] = Translation.new()
+		translations[locale].locale = locale
+	return translations[locale]
 
 ## Creates the InputMap action(s) for a single [InputActionDef]
 func _map_action(set_key: StringName, layer_key: StringName, action_name: StringName, action_def: InputActionDef, player: InputRelayPlayer) -> void:
