@@ -4,11 +4,11 @@ extends EditorPlugin
 
 const settings := [
 	{
-		"name": "InputRelay/settings_resource",
+		"name": "InputRelay/settings_resource_path",
 		"type": TYPE_OBJECT,
-		"hint": PROPERTY_HINT_RESOURCE_TYPE,
+		"hint": PROPERTY_HINT_FILE_PATH,
 		"hint_string": "InputRelaySettings",
-		"default": null,
+		"default": "res://addons/input_relay/default/default_settings.tres",
 	},
 	{
 		"name": "InputRelay/max_players",

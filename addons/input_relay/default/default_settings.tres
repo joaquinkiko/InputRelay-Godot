@@ -1,0 +1,20 @@
+[gd_resource type="Resource" script_class="InputRelaySettings" format=3 uid="uid://cbjhk4bpm7iag"]
+
+[ext_resource type="Script" uid="uid://c1qat0524ot57" path="res://addons/input_relay/resources/input_action_set.gd" id="1_6wsq4"]
+[ext_resource type="Resource" uid="uid://cjbbegjfdo3wm" path="res://addons/input_relay/default/ui_set.tres" id="2_jr2st"]
+[ext_resource type="Script" uid="uid://b1kbpoeqq8sn1" path="res://addons/input_relay/resources/input_relay_settings.gd" id="2_tp8xk"]
+[ext_resource type="Resource" uid="uid://bs3conl6o1wgp" path="res://addons/input_relay/default/gamepad_glyph_map.tres" id="3_oppvg"]
+[ext_resource type="Resource" uid="uid://byy4pb8qgpkbc" path="res://addons/input_relay/default/keyboard_glyph_map.tres" id="4_2n2og"]
+
+[resource]
+script = ExtResource("2_tp8xk")
+default_action_set = &"ui"
+action_sets = Dictionary[StringName, ExtResource("1_6wsq4")]({
+&"ui": ExtResource("2_jr2st")
+})
+mouse_keyboard_glyph_map = ExtResource("4_2n2og")
+generic_glyph_map = ExtResource("3_oppvg")
+xbox_glyph_map = ExtResource("3_oppvg")
+dualshock_glyph_map = ExtResource("3_oppvg")
+nintendo_pro_glyph_map = ExtResource("3_oppvg")
+metadata/_custom_type_script = "uid://b1kbpoeqq8sn1"

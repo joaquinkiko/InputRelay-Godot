@@ -1,0 +1,62 @@
+[gd_resource type="Resource" script_class="InputActionSet" format=3 uid="uid://cjbbegjfdo3wm"]
+
+[ext_resource type="Script" uid="uid://cupyc36juujsp" path="res://addons/input_relay/input_action_defs/input_action_def.gd" id="1_4o2lg"]
+[ext_resource type="Script" uid="uid://c1qat0524ot57" path="res://addons/input_relay/resources/input_action_set.gd" id="2_3y8sj"]
+[ext_resource type="Script" uid="uid://c0pa5r65pjjy" path="res://addons/input_relay/input_action_defs/digital.gd" id="2_yos1b"]
+[ext_resource type="Script" uid="uid://cwg4kjx70ou6o" path="res://addons/input_relay/input_action_defs/stick_pad.gd" id="3_mf5k0"]
+
+[sub_resource type="Resource" id="Resource_mf5k0"]
+script = ExtResource("2_yos1b")
+mouse_key_button = 98
+joy_button = 1
+metadata/_custom_type_script = "uid://c0pa5r65pjjy"
+
+[sub_resource type="Resource" id="Resource_xhsll"]
+script = ExtResource("2_yos1b")
+mouse_key_button = 101
+joy_button = 4
+metadata/_custom_type_script = "uid://c0pa5r65pjjy"
+
+[sub_resource type="Resource" id="Resource_x6rbc"]
+script = ExtResource("2_yos1b")
+mouse_key_button = 95
+joy_button = 2
+metadata/_custom_type_script = "uid://c0pa5r65pjjy"
+
+[sub_resource type="Resource" id="Resource_x6srx"]
+script = ExtResource("2_yos1b")
+mouse_key_button = 65
+joy_button = 14
+metadata/_custom_type_script = "uid://c0pa5r65pjjy"
+
+[sub_resource type="Resource" id="Resource_88cbw"]
+script = ExtResource("2_yos1b")
+mouse_key_button = 66
+joy_button = 15
+metadata/_custom_type_script = "uid://c0pa5r65pjjy"
+
+[sub_resource type="Resource" id="Resource_yos1b"]
+script = ExtResource("3_mf5k0")
+joy_motion = 1
+up_mouse_key_button = 62
+up_joy_button = 8
+down_mouse_key_button = 64
+down_joy_button = 9
+left_mouse_key_button = 61
+left_joy_button = 10
+right_mouse_key_button = 63
+right_joy_button = 11
+metadata/_custom_type_script = "uid://cwg4kjx70ou6o"
+
+[resource]
+script = ExtResource("2_3y8sj")
+mouse_mode_joy = 1
+actions = Dictionary[StringName, ExtResource("1_4o2lg")]({
+&"ui": SubResource("Resource_yos1b"),
+&"ui_accept": SubResource("Resource_mf5k0"),
+&"ui_cancel": SubResource("Resource_x6rbc"),
+&"ui_page_down": SubResource("Resource_88cbw"),
+&"ui_page_up": SubResource("Resource_x6srx"),
+&"ui_select": SubResource("Resource_xhsll")
+})
+metadata/_custom_type_script = "uid://c1qat0524ot57"

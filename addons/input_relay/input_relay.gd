@@ -45,7 +45,11 @@ var player_awaiting_assignment: int = 0
 
 func _ready() -> void:
 	# Get settings
-	settings = ProjectSettings.get_setting("InputRelay/settings_resource", InputRelaySettings.new())
+	var settings_path = ProjectSettings.get_setting(
+		"InputRelay/settings_resource_path",
+		"res://addons/input_relay/default/default_settings.tres"
+		)
+	settings = ResourceLoader.load(settings_path) as InputRelaySettings
 	if settings == null:
 		settings = InputRelaySettings.new()
 		push_error("No InputRelaySettings provided!")

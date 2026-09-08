@@ -1,0 +1,7 @@
+[gd_resource type="Resource" script_class="DeviceGlyphMapGamepad" format=3 uid="uid://bs3conl6o1wgp"]
+
+[ext_resource type="Script" uid="uid://dxmgi2qw4k1qk" path="res://addons/input_relay/resources/device_glyph_map_gamepad.gd" id="1_5tbda"]
+
+[resource]
+script = ExtResource("1_5tbda")
+metadata/_custom_type_script = "uid://dxmgi2qw4k1qk"
