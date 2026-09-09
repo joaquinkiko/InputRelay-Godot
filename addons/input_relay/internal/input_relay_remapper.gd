@@ -3,18 +3,6 @@ class_name InputRelayMapper extends RefCounted
 
 signal refreshed_mappings
 
-## Proxy event IDs
-enum ProxyAxis {
-	MOUSE_X = 100,
-	MOUSE_Y = 101,
-	## Pitch / Tilt forward-and-back
-	GYRO_X = 102,
-	## Yaw / Twist side-to-side
-	GYRO_Y = 103,
-	## Roll / Tilt side-to-side
-	GYRO_Z = 104,
-}
-
 ## Directions generated for each [InputActionDefStickPad]
 const _STICK_DIRECTIONS: Array[StringName] = [&"up", &"down", &"left", &"right"]
 
