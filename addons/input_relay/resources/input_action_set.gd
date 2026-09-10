@@ -27,6 +27,23 @@ enum MouseModes {
 ## Available actions for this set, sorted by name
 @export var actions: Dictionary[StringName, InputActionDef]
 
+func _init() -> void:
+	# Enfoce no '+' and lowercase for keys for compatibility with SteamInput setup
+	for key: StringName in actions.keys():
+		if String(key) != String(key).to_lower():
+			push_error("Action Names should be lowercase!")
+			key = key.to_lower()
+		if String(key) != String(key).replace('+', ' '):
+			push_error("Action Names should not include '+' character, replacing with ' '!")
+			key = key.replace('+', ' ')
+	for key: StringName in layers.keys():
+		if String(key) != String(key).to_lower():
+			push_error("Action layers should be lowercase!")
+			key = key.to_lower()
+		if String(key) != String(key).replace('+', ' '):
+			push_error("Action layers should not include '+' character, replacing with ' '!")
+			key = key.replace('+', ' ')
+
 func apply_mouse_mode(using_joy: bool) -> void:
 	var mode: Input.MouseMode
 	if using_joy: mode = mouse_mode_keyboard

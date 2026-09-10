@@ -23,6 +23,16 @@ class_name InputRelaySettings extends Resource
 @export_group("Steam Input")
 @export_tool_button("Export Steam Input VDF") var export_vdf_button: Callable = _prompt_export_vdf
 
+func _init() -> void:
+	# Enfoce no '+' and lowercase for keys for compatibility with SteamInput setup
+	for key: StringName in action_sets.keys():
+		if String(key) != String(key).to_lower():
+			push_error("Action sets should be lowercase!")
+			key = key.to_lower()
+		if String(key) != String(key).replace('+', ' '):
+			push_error("Action sets should not include '+' character, replacing with ' '!")
+			key = key.replace('+', ' ')
+
 func _prompt_export_vdf() -> void:
 	if not Engine.is_editor_hint():
 		return
