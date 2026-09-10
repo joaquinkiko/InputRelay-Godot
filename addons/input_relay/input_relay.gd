@@ -57,6 +57,8 @@ var _smoothed_mouse_axis: Vector2 = Vector2.ZERO
 var _gyro_axis: Vector3 = Vector3.ZERO
 var _smoothed_gyro_axis: Vector3 = Vector3.ZERO
 
+var _toggled_actions: Array[StringName]
+
 func _ready() -> void:
 	# Ensure input gets to us first
 	process_priority = 0x80000000 # 32-bit floor, so we always process first
@@ -129,7 +131,8 @@ func _input(event: InputEvent) -> void:
 		var action_def := remapper.mapped_action_defs.get(event.action, null)
 		if action_def is InputActionDefDirectional:
 			_normalize_directional_action(event, action_def)
-
+		elif action_def is InputActionDefDigital && action_def.is_toggle:
+			_handle_toggle_action(event, action_def)
 
 func _process(delta: float) -> void:
 	# Process mouse
@@ -147,6 +150,27 @@ func _process(delta: float) -> void:
 			_proxy_joy_motion(device.index, InputActionDef.PROXY_GYRO_X, _smoothed_gyro_axis.x)
 			_proxy_joy_motion(device.index, InputActionDef.PROXY_GYRO_Y, _smoothed_gyro_axis.y)
 			_proxy_joy_motion(device.index, InputActionDef.PROXY_GYRO_Z, _smoothed_gyro_axis.z)
+
+## Handles toggling for [InputActionDefDigital] actions
+func _handle_toggle_action(event: InputEventAction, action_def: InputActionDefDirectional) -> void:
+	var is_toggled: bool = _toggled_actions.has(action_def.action_name)
+	if event.pressed:
+		# Flip the toggle value and write to array
+		is_toggled != is_toggled
+		if is_toggled:
+			_toggled_actions.append(event.action)
+		else:
+			_toggled_actions.erase(event.action)
+	# These should update regardless of event press or release
+	# Actual release is always ignored for toggle, making the second press
+	# act as the real "release"
+	# Update [Input] data
+	if is_toggled:
+		Input.action_press(action_def.action_name)
+	else:
+		Input.action_release(action_def.action_name)
+	# Update event data
+	event.pressed = is_toggled
 
 ## Normalizes the event of an [InputActionDefDirectional], updating its values going forward
 func _normalize_directional_action(event: InputEventAction, action_def: InputActionDefDirectional) -> void:
