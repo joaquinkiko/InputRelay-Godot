@@ -11,6 +11,9 @@ signal switch_current_device_type(player_number: int, old_device: int, new_devic
 
 const KEYBOARD_INDEX := InputEvent.DEVICE_ID_KEYBOARD
 
+## Offsets device indexes for Steam Input
+const STEAM_DEVICE_ID_OFFSET := 1000
+
 # Default values for helper vibrations (weak_motor, strong_motor, duration)
 const _HAPTIC_TAP = 	Vector3(0.15, 0.08, 0.05)
 const _HAPTIC_WEAK = 	Vector3(0.25, 0.15, 0.10)
@@ -59,6 +62,9 @@ var _smoothed_gyro_axis: Vector3 = Vector3.ZERO
 
 var _toggled_actions: Array[StringName]
 
+var _steam_handle_to_device_id: Dictionary[int, int] = {}
+var _next_steam_device_id := STEAM_DEVICE_ID_OFFSET
+
 func _ready() -> void:
 	# Ensure input gets to us first
 	process_priority = 0x80000000 # 32-bit floor, so we always process first
@@ -89,6 +95,8 @@ func _ready() -> void:
 			_register_device(KEYBOARD_INDEX, "Keyboard & Mouse")
 		_:
 			pass
+	if _using_steam_input():
+		_refresh_steam_devices()
 	# Set player action sets to defaults
 	for n in players.size():
 		set_player_action_set(n + 1, settings.default_action_set)
@@ -135,6 +143,9 @@ func _input(event: InputEvent) -> void:
 			_handle_toggle_action(event, action_def)
 
 func _process(delta: float) -> void:
+	# Steam Input handling
+	if _using_steam_input():
+		_refresh_steam_devices()
 	# Process mouse
 	if _mouse_axis != Vector2.ZERO:
 		_smoothed_mouse_axis = _smoothed_mouse_axis.lerp(_mouse_axis, 1.0 - exp(-_MOTION_SMOOTHING_SPEED * delta))
@@ -274,6 +285,29 @@ func _unregister_device(device_id: int) -> void:
 	# Stop any vibration just to be safe
 	if Input.get_connected_joypads().has(device_id):
 		Input.stop_joy_vibration(device_id)
+
+## Adds newly connected Steam Input controllers, removes disconnected ones
+func _refresh_steam_devices() -> void:
+	if not Engine.has_singleton("Steam"): return
+	var steam := Engine.get_singleton("Steam")
+	var current: Array = steam.getConnectedControllers()
+	for handle in current:
+		if not _steam_handle_to_device_id.has(handle):
+			_register_steam_device(handle)
+	for handle in _steam_handle_to_device_id.keys().duplicate():
+		if not current.has(handle):
+			_unregister_device(_steam_handle_to_device_id[handle])
+			_steam_handle_to_device_id.erase(handle)
+
+func _register_steam_device(handle: int) -> void:
+	var device_id := _next_steam_device_id
+	_next_steam_device_id += 1
+	_steam_handle_to_device_id[handle] = device_id
+	var device := InputRelayDevice.new(device_id, "Steam Controller", settings, handle)
+	devices.append(device)
+	device_connected.emit(device_id)
+	if !player_has_non_keyboard_devices(1) and ProjectSettings.get_setting("InputRelay/player_1_auto_assign_first_device", true):
+		assign_device(device_id, 1)
 
 func assign_device(device_id: int, player_number: int) -> void:
 	var device := get_device(device_id)

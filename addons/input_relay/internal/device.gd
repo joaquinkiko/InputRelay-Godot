@@ -28,9 +28,27 @@ var player: InputRelayPlayer
 ## Steam Input handle for this device, 0 if not Steam-managed
 var steam_input_handle: int
 
-func _init(device_id: int, device_name: String, settings: InputRelaySettings = null) -> void:
+func _init(device_id: int, device_name: String, settings: InputRelaySettings = null, steam_handle: int = 0) -> void:
 	self.index = device_id
 	self.name = device_name
+	self.steam_input_handle = steam_handle
+	#  If using Steam Input, allow it to take over rest of setup
+	if is_steam_managed():
+		var steam := Engine.get_singleton("Steam")
+		var input_type: int = steam.getInputTypeForHandle(steam_input_handle)
+		feature_flags |= Features.HAPTIC
+		match input_type:
+			steam.INPUT_TYPE_PS4, steam.INPUT_TYPE_PS5:
+				feature_flags |= Features.LIGHTS | Features.MOTION
+				glyph_map = settings.dualshock_glyph_map
+			steam.INPUT_TYPE_SWITCH_PRO_CONTROLLER:
+				feature_flags |= Features.MOTION
+				glyph_map = settings.nintendo_pro_glyph_map
+			steam.INPUT_TYPE_XBOX360, steam.INPUT_TYPE_XBOXONE:
+				glyph_map = settings.xbox_glyph_map
+			_:
+				glyph_map = settings.generic_glyph_map
+		return
 	# Assign feature flags
 	if Input.get_connected_joypads().has(device_id):
 		if Input.has_joy_light(device_id):
