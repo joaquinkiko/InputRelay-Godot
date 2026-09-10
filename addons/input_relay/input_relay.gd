@@ -65,6 +65,8 @@ var _toggled_actions: Array[StringName]
 var _steam_handle_to_device_id: Dictionary[int, int] = {}
 var _next_steam_device_id := STEAM_DEVICE_ID_OFFSET
 var _steam_action_set_handles: Dictionary[StringName, int] = {}
+var _steam_digital_action_handles: Dictionary[StringName, int] = {}
+var _steam_analog_action_handles: Dictionary[StringName, int] = {}
 
 func _ready() -> void:
 	# Ensure input gets to us first
@@ -147,6 +149,7 @@ func _process(delta: float) -> void:
 	# Steam Input handling
 	if _using_steam_input():
 		_refresh_steam_devices()
+		remapper.process_steam_dispatch()
 	# Process mouse
 	if _mouse_axis != Vector2.ZERO:
 		_smoothed_mouse_axis = _smoothed_mouse_axis.lerp(_mouse_axis, 1.0 - exp(-_MOTION_SMOOTHING_SPEED * delta))
@@ -278,6 +281,8 @@ func _unregister_device(device_id: int) -> void:
 	var player := device.player
 	if player != null:
 		unassign_device(device_id, device.player.number)
+	if device.is_steam_managed():
+		remapper.clear_steam_digital_state_for_handle(device.steam_input_handle)
 	devices.erase(device)
 	if player:
 		device_disconnected.emit(device_id, player.number)
@@ -972,3 +977,13 @@ func _steam_activate_player_action_set(player_number: int) -> void:
 		steam.deactivateAllActionSetLayers(device.steam_input_handle)
 		for layer_key in player.current_action_layers:
 			steam.activateActionSetLayer(device.steam_input_handle, _steam_get_action_set_handle(layer_key))
+
+func _steam_get_digital_action_handle(action_name: StringName) -> int:
+	if not _steam_digital_action_handles.has(action_name):
+		_steam_digital_action_handles[action_name] = Engine.get_singleton("Steam").getDigitalActionHandle(action_name)
+	return _steam_digital_action_handles[action_name]
+
+func _steam_get_analog_action_handle(action_name: StringName) -> int:
+	if not _steam_analog_action_handles.has(action_name):
+		_steam_analog_action_handles[action_name] = Engine.get_singleton("Steam").getAnalogActionHandle(action_name)
+	return _steam_analog_action_handles[action_name]

@@ -21,6 +21,11 @@ var translations: Dictionary[StringName, Translation]
 ## Links mapped action names to their [InputActionDef]
 var mapped_action_defs: Dictionary[StringName, InputActionDef]
 
+## Entries built each refresh_mappings(), consumed by InputRelay's Steam dispatch pass
+var steam_dispatch_entries: Array[Dictionary] = []
+## Tracks previous digital state per target action, for press/release edge detection
+var _steam_previous_digital: Dictionary[String, bool] = {}
+
 func _init() -> void:
 	# Get remap path from project settings, and load settings if auto loading is enabled
 	remap_file_path = ProjectSettings.get_setting("InputRelay/remap_save_load_path", "user://input_remaps.cfg")
@@ -58,6 +63,8 @@ func refresh_mappings() -> void:
 			InputMap.erase_action(action_name)
 	_managed_actions.clear()
 	mapped_action_defs.clear()
+	steam_dispatch_entries.clear()
+	_steam_previous_digital.clear()
 	
 	for player in InputRelay.players:
 		var action_set: InputActionSet = InputRelay.settings.action_sets.get(player.current_action_set)
@@ -202,10 +209,32 @@ func _get_translation(locale: String) -> Translation:
 ## Creates the InputMap action(s) for a single [InputActionDef]
 func _map_action(set_key: StringName, layer_key: StringName, action_name: StringName, action_def: InputActionDef, player: InputRelayPlayer) -> void:
 	if action_def is InputActionDefStickPad:
+		for device in player.devices:
+			if device.is_steam_managed():
+				for suffix in _action_suffixes(player):
+					steam_dispatch_entries.append({
+						"kind": "stick", "steam_action_name": action_name,
+						"steam_input_handle": device.steam_input_handle,
+						"right_action": StringName("%s_right%s"%[action_name,suffix]),
+						"left_action": StringName("%s_left%s"%[action_name,suffix]),
+						"down_action": StringName("%s_down%s"%[action_name,suffix]),
+						"up_action": StringName("%s_up%s"%[action_name,suffix]),
+					})
 		for direction in _STICK_DIRECTIONS: # Need to map multiple directions
 			_map_stick_direction(set_key, layer_key, action_name, direction, action_def, player)
 		return
 	if action_def is InputActionDefDirectional:
+		for device in player.devices:
+			if device.is_steam_managed():
+				for suffix in _action_suffixes(player):
+					steam_dispatch_entries.append({
+						"kind": "dpad_analog", "steam_action_name": action_name,
+						"steam_input_handle": device.steam_input_handle,
+						"up_action": StringName("%s_up%s"%[action_name,suffix]),
+						"down_action": StringName("%s_down%s"%[action_name,suffix]),
+						"left_action": StringName("%s_left%s"%[action_name,suffix]),
+						"right_action": StringName("%s_right%s"%[action_name,suffix]),
+					})
 		for direction in _STICK_DIRECTIONS: # Need to map multiple directions
 			_map_dpad_direction(set_key, layer_key, action_name, direction, action_def, player)
 		return
@@ -218,7 +247,13 @@ func _map_action(set_key: StringName, layer_key: StringName, action_name: String
 		_managed_actions.append(full_name)
 		mapped_action_defs[full_name] = action_def
 		for device in player.devices:
-			if device.index == InputRelay.KEYBOARD_INDEX:
+			if device.is_steam_managed():
+				var kind := "analog_trigger" if action_def is InputActionDefAnalog else "digital"
+				steam_dispatch_entries.append({
+					"kind": kind, "target_action": full_name,
+					"steam_action_name": action_name, "steam_input_handle": device.steam_input_handle,
+				})
+			elif device.index == InputRelay.KEYBOARD_INDEX:
 				_add_key_mouse_event(full_name, get_remap_key_mouse(set_key, layer_key, action_name, player.number), device.index)
 			else:
 				_add_joy_button_event(full_name, get_remap_joy_button(set_key, layer_key, action_name, player.number), device.index)
@@ -242,6 +277,8 @@ func _map_stick_direction(set_key: StringName, layer_key: StringName, action_nam
 		_managed_actions.append(full_name)
 		mapped_action_defs[full_name] = stick_pad
 		for device in player.devices:
+			if device.is_steam_managed():
+				continue
 			if device.index == InputRelay.KEYBOARD_INDEX:
 				_add_key_mouse_event(full_name, mouse_key_button, device.index)
 				if stick_pad.mouse_motion:
@@ -271,6 +308,8 @@ func _map_dpad_direction(set_key: StringName, layer_key: StringName, action_name
 		_managed_actions.append(full_name)
 		mapped_action_defs[full_name] = dpad
 		for device in player.devices:
+			if device.is_steam_managed():
+				continue
 			if device.index == InputRelay.KEYBOARD_INDEX:
 				_add_key_mouse_event(full_name, mouse_key_button, device.index)
 			else:
@@ -712,3 +751,69 @@ func clear_remaps(player: int) -> void:
 			continue
 		elif section.begins_with("Player%s"%player):
 			remap_file.erase_section(section)
+
+## Polls Steam Input for all registered actions and synthesizes InputEventActions,
+## so downstream logic (_input, toggle handling, normalization) runs identically to native input
+func process_steam_dispatch() -> void:
+	if not Engine.has_singleton("Steam"):
+		return
+	var steam := Engine.get_singleton("Steam")
+	for entry in steam_dispatch_entries:
+		match entry["kind"]:
+			"digital":
+				var handle := InputRelay._steam_get_digital_action_handle(entry["steam_action_name"])
+				var pressed: bool = steam.getDigitalActionData(entry["steam_input_handle"], handle).bState
+				_dispatch_digital_edge(entry["target_action"], pressed)
+			"analog_trigger":
+				var handle := InputRelay._steam_get_analog_action_handle(entry["steam_action_name"])
+				var strength: float = steam.getAnalogActionData(entry["steam_input_handle"], handle).x
+				_dispatch_analog_event(entry["target_action"], strength)
+			"stick":
+				var handle := InputRelay._steam_get_analog_action_handle(entry["steam_action_name"])
+				var data: Dictionary = steam.getAnalogActionData(entry["steam_input_handle"], handle)
+				_dispatch_analog_event(entry["right_action"], maxf(data.x, 0.0))
+				_dispatch_analog_event(entry["left_action"], maxf(-data.x, 0.0))
+				_dispatch_analog_event(entry["down_action"], maxf(data.y, 0.0))
+				_dispatch_analog_event(entry["up_action"], maxf(-data.y, 0.0))
+			"dpad_analog":
+				var handle := InputRelay._steam_get_analog_action_handle(entry["steam_action_name"])
+				var data: Dictionary = steam.getAnalogActionData(entry["steam_input_handle"], handle)
+				_dispatch_analog_event(entry["right_action"], maxf(data.x, 0.0))
+				_dispatch_analog_event(entry["left_action"], maxf(-data.x, 0.0))
+				_dispatch_analog_event(entry["down_action"], maxf(data.y, 0.0))
+				_dispatch_analog_event(entry["up_action"], maxf(-data.y, 0.0))
+
+## Fires a press/release InputEventAction only on state change
+func _dispatch_digital_edge(action: StringName, pressed: bool) -> void:
+	var key := String(action)
+	if _steam_previous_digital.get(key, false) == pressed:
+		return
+	_steam_previous_digital[key] = pressed
+	var event := InputEventAction.new()
+	event.action = action
+	event.pressed = pressed
+	Input.parse_input_event(event)
+	if pressed:
+		Input.action_press(action, 1.0)
+	else:
+		Input.action_release(action)
+	
+
+## Fires a continuous analog InputEventAction, letting deadzone/strength handling do the rest
+func _dispatch_analog_event(action: StringName, strength: float) -> void:
+	var event := InputEventAction.new()
+	event.action = action
+	event.strength = strength
+	event.pressed = strength > 0.0
+	Input.parse_input_event(event)
+	if strength > 0.0:
+		Input.action_press(action, strength)
+	else:
+		Input.action_release(action)
+
+## Removes cached press-state for a disconnected Steam device, so a stale true doesn't
+## suppress the next press if the action name gets reused by another device
+func clear_steam_digital_state_for_handle(steam_input_handle: int) -> void:
+	for entry in steam_dispatch_entries:
+		if entry.get("steam_input_handle") == steam_input_handle and entry.has("target_action"):
+			_steam_previous_digital.erase(String(entry["target_action"]))
