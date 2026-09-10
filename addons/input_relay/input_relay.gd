@@ -320,7 +320,7 @@ func assign_device(device_id: int, player_number: int) -> void:
 	player.devices.append(device)
 	device.player = player
 	if device.supports_lights():
-		Input.set_joy_light(device.index, player.color)
+		device.set_light(player.color)
 	remapper.refresh_mappings()
 	remapper.refresh_translations()
 	# Setup the steam input connections for this device
@@ -340,7 +340,7 @@ func unassign_device(device_id: int, player_number: int) -> void:
 	if Input.get_connected_joypads().has(device_id):
 		device.stop_vibrating()
 	if device.supports_lights():
-		Input.set_joy_light(device.index, Color.WHITE)
+		device.set_light(Color.WHITE)
 	remapper.refresh_mappings()
 	remapper.refresh_translations()
 
