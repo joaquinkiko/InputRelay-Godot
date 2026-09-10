@@ -285,7 +285,7 @@ func _unregister_device(device_id: int) -> void:
 		device_disconnected.emit(device_id, 0)
 	# Stop any vibration just to be safe
 	if Input.get_connected_joypads().has(device_id):
-		Input.stop_joy_vibration(device_id)
+		device.stop_vibrating()
 
 ## Adds newly connected Steam Input controllers, removes disconnected ones
 func _refresh_steam_devices() -> void:
@@ -338,7 +338,7 @@ func unassign_device(device_id: int, player_number: int) -> void:
 		player.devices.erase(device)
 	# Stop any vibration
 	if Input.get_connected_joypads().has(device_id):
-		Input.stop_joy_vibration(device_id)
+		device.stop_vibrating()
 	if device.supports_lights():
 		Input.set_joy_light(device.index, Color.WHITE)
 	remapper.refresh_mappings()
@@ -387,11 +387,11 @@ func vibrate_player(player: int, weak_motor: float, strong_motor: float, duratio
 		for n in range(1, MAX_PLAYERS + 1):
 			for device in get_player(n).devices:
 				if not device.supports_haptic(): continue
-				Input.start_joy_vibration(device.index, weak_motor, strong_motor, duration)
+				device.vibrate(weak_motor, strong_motor, duration)
 		return
 	for device in get_player(player).devices:
 		if not device.supports_haptic(): continue
-		Input.start_joy_vibration(device.index, weak_motor, strong_motor, duration)
+		device.vibrate(weak_motor, strong_motor, duration)
 
 ## Returns true if any of player devices are currently vibrating. Use 0 for all players.
 func player_is_vibrating(player: int) -> bool:
@@ -402,11 +402,11 @@ func player_is_vibrating(player: int) -> bool:
 		for n in range(1, MAX_PLAYERS + 1):
 			for device in get_player(n).devices:
 				if not device.supports_haptic(): continue
-				if Input.is_joy_vibrating(device.index): return true
+				if device.is_vibrating(): return true
 		return false
 	for device in get_player(player).devices:
 		if not device.supports_haptic(): continue
-		if Input.is_joy_vibrating(device.index): return true
+		if device.is_vibrating(): return true
 	return false
 
 ## Stop all player devices from vibrating. Use 0 for all players.
@@ -418,11 +418,11 @@ func stop_vibrating_player(player: int) -> void:
 		for n in range(1, MAX_PLAYERS + 1):
 			for device in get_player(player).devices:
 				if not device.supports_haptic(): continue
-				Input.stop_joy_vibration(device.index)
+				device.stop_vibrating()
 		return
 	for device in players[player].devices:
 		if not device.supports_haptic(): continue
-		Input.stop_joy_vibration(device.index)
+		device.stop_vibrating()
 
 ## Helper function for very small 'tap' haptics (e.g. UI selection, item pickups)
 func vibrate_player_tap(player: int) -> void:
