@@ -900,3 +900,9 @@ func await_and_assign_device(player_number: int) -> void:
 ## Stops [method await_and_assign_device]
 func stop_awaiting_device_assign() -> void:
 	player_awaiting_assignment = 0
+
+## True if GodotSteam extension is present and Steam Input is currently managing a device
+func _using_steam_input() -> bool:
+	if not Engine.has_singleton("Steam"):
+		return false
+	return not Engine.get_singleton("Steam").getConnectedControllers().is_empty()
