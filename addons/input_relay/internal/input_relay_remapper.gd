@@ -18,6 +18,9 @@ var remap_file_path: String
 ## Handles localizations for actions and bindings sorted by language
 var translations: Dictionary[StringName, Translation]
 
+## Links mapped action names to their [InputActionDef]
+var mapped_action_defs: Dictionary[StringName, InputActionDef]
+
 func _init() -> void:
 	# Get remap path from project settings, and load settings if auto loading is enabled
 	remap_file_path = ProjectSettings.get_setting("InputRelay/remap_save_load_path", "user://input_remaps.cfg")
@@ -54,6 +57,7 @@ func refresh_mappings() -> void:
 		if InputMap.has_action(action_name):
 			InputMap.erase_action(action_name)
 	_managed_actions.clear()
+	mapped_action_defs.clear()
 	
 	for player in InputRelay.players:
 		var action_set: InputActionSet = InputRelay.settings.action_sets.get(player.current_action_set)
@@ -203,7 +207,7 @@ func _map_action(set_key: StringName, layer_key: StringName, action_name: String
 		return
 	if action_def is InputActionDefDirectional:
 		for direction in _STICK_DIRECTIONS: # Need to map multiple directions
-			_map_dpad_direction(set_key, layer_key, action_name, direction, player)
+			_map_dpad_direction(set_key, layer_key, action_name, direction, action_def, player)
 		return
 	# Suffix is typically player number, though player 1 also uses blank, or no suffix
 	for suffix in _action_suffixes(player):
@@ -212,6 +216,7 @@ func _map_action(set_key: StringName, layer_key: StringName, action_name: String
 		if action_def is InputActionDefAnalog:
 			InputMap.action_set_deadzone(full_name, get_remap_update_deadzone(set_key, layer_key, action_name, player.number))
 		_managed_actions.append(full_name)
+		mapped_action_defs[full_name] = action_def
 		for device in player.devices:
 			if device.index == InputRelay.KEYBOARD_INDEX:
 				_add_key_mouse_event(full_name, get_remap_key_mouse(set_key, layer_key, action_name, player.number), device.index)
@@ -235,6 +240,7 @@ func _map_stick_direction(set_key: StringName, layer_key: StringName, action_nam
 		InputMap.add_action(full_name)
 		InputMap.action_set_deadzone(full_name, deadzone)
 		_managed_actions.append(full_name)
+		mapped_action_defs[full_name] = stick_pad
 		for device in player.devices:
 			if device.index == InputRelay.KEYBOARD_INDEX:
 				_add_key_mouse_event(full_name, mouse_key_button, device.index)
@@ -254,7 +260,7 @@ func _map_stick_direction(set_key: StringName, layer_key: StringName, action_nam
 					InputMap.action_add_event(full_name, event)
 
 ## Registers one directional sub-action for a dpad: "[name]_[direction][suffix]"
-func _map_dpad_direction(set_key: StringName, layer_key: StringName, action_name: StringName, direction: StringName, player: InputRelayPlayer) -> void:
+func _map_dpad_direction(set_key: StringName, layer_key: StringName, action_name: StringName, direction: StringName, dpad: InputActionDefDirectional, player: InputRelayPlayer) -> void:
 	var direction_index := _STICK_DIRECTIONS.find(direction)
 	var mouse_key_button: InputActionDef.MouseKeyButton = get_remap_directional_key_mouse(set_key, layer_key, action_name, player.number)[direction_index]
 	var joy_button: InputActionDef.JoypadButton = get_remap_directional_joy_button(set_key, layer_key, action_name, player.number)[direction_index]
@@ -263,6 +269,7 @@ func _map_dpad_direction(set_key: StringName, layer_key: StringName, action_name
 		var full_name := StringName("%s_%s%s" % [action_name, direction, suffix])
 		InputMap.add_action(full_name)
 		_managed_actions.append(full_name)
+		mapped_action_defs[full_name] = dpad
 		for device in player.devices:
 			if device.index == InputRelay.KEYBOARD_INDEX:
 				_add_key_mouse_event(full_name, mouse_key_button, device.index)
