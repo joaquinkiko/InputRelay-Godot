@@ -12,7 +12,7 @@ var color: Color:
 		_color = value
 		for device in devices:
 			if device.supports_lights():
-				Input.set_joy_light(device.index, color)
+				device.set_light(color)
 var _color := Color.WHITE
 ## Key of currently active action set
 var current_action_set: StringName
