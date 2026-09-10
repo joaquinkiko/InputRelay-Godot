@@ -123,8 +123,11 @@ func _input(event: InputEvent) -> void:
 	if event is InputEventMouseMotion:
 		_mouse_axis += event.screen_relative * _MOUSE_SENSITIVITY
 	
-	# TODO: Normalize directional input
-	# TODO: Apply directional sensitivity
+	if event is InputEventAction:
+		var action_def := remapper.mapped_action_defs.get(event.action, null)
+		if action_def is InputActionDefDirectional:
+			_normalize_directional_action(event, action_def)
+
 
 func _process(delta: float) -> void:
 	# Process mouse
@@ -142,6 +145,60 @@ func _process(delta: float) -> void:
 			_proxy_joy_motion(device.index, InputActionDef.PROXY_GYRO_X, _smoothed_gyro_axis.x)
 			_proxy_joy_motion(device.index, InputActionDef.PROXY_GYRO_Y, _smoothed_gyro_axis.y)
 			_proxy_joy_motion(device.index, InputActionDef.PROXY_GYRO_Z, _smoothed_gyro_axis.z)
+
+## Normalizes the event of an [InputActionDefDirectional], updating its values going forward
+func _normalize_directional_action(event: InputEventAction, action_def: InputActionDefDirectional) -> void:
+	var parts := _get_stick_action_parts(event.action)
+	if parts.is_empty():
+		return
+	var base_name: String = parts[0]
+	var player_suffix: String = parts[1]
+	# Normalize direction
+	var direction := Vector2(
+		# X axis
+		Input.get_action_strength(base_name + "_right" + player_suffix)
+		- Input.get_action_strength(base_name + "_left" + player_suffix),
+		# Y axis
+		Input.get_action_strength(base_name + "_down" + player_suffix)
+		- Input.get_action_strength(base_name + "_up" + player_suffix)
+	)
+	if direction.length() > 1.0:
+		direction = direction.normalized()
+	# Apply sensitivity
+	if action_def is InputActionDefStickPadVelocity:
+		direction *= action_def.sensitivity
+	# Write normalized values back to [Input]
+	_proxy_set_action_strength(base_name + "_right" + player_suffix, maxf(direction.x, 0.0))
+	_proxy_set_action_strength(base_name + "_left" + player_suffix, maxf(-direction.x, 0.0))
+	_proxy_set_action_strength(base_name + "_down" + player_suffix, maxf(direction.y, 0.0))
+	_proxy_set_action_strength(base_name + "_up" + player_suffix, maxf(-direction.y, 0.0))
+	# Write normalized value back to this event
+	event.strength = Input.get_action_strength(event.action)
+	event.pressed = event.strength > 0.0
+
+## Splits a stick direction action name into its base name and player suffix.
+## Used to used to remove the directional aspect of the name.
+func _get_stick_action_parts(action_name: String) -> Array:
+	var suffix_start := action_name.length()
+	while suffix_start > 0 and action_name[suffix_start - 1].is_valid_int():
+		suffix_start -= 1
+	var suffix := action_name.substr(suffix_start)
+	var trimmed := action_name.substr(0, suffix_start)
+	for direction in ["up", "down", "left", "right"]:
+		if trimmed.ends_with("_" + direction):
+			return [
+				trimmed.substr(0, trimmed.length() - direction.length() - 1),
+				suffix,
+			]
+	return []
+
+## Proxies the press or releases of an action and its strength value.
+## [param strength] 0.0 is considered a release.
+func _proxy_set_action_strength(action: StringName, strength: float) -> void:
+	if strength > 0.0:
+		Input.action_press(action, strength)
+	else:
+		Input.action_release(action)
 
 func _proxy_joy_motion(device: int, axis: JoyAxis, value: float) -> void:
 	var event := InputEventJoypadMotion.new()
