@@ -171,7 +171,7 @@ func _handle_toggle_action(event: InputEventAction, action_def: InputActionDefDi
 	var is_toggled: bool = _toggled_actions.has(action_def.action_name)
 	if event.pressed:
 		# Flip the toggle value and write to array
-		is_toggled != is_toggled
+		is_toggled = !is_toggled
 		if is_toggled:
 			_toggled_actions.append(event.action)
 		else:
