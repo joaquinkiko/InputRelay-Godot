@@ -58,6 +58,8 @@ var _gyro_axis: Vector3 = Vector3.ZERO
 var _smoothed_gyro_axis: Vector3 = Vector3.ZERO
 
 func _ready() -> void:
+	# Ensure input gets to us first
+	process_priority = 0x80000000 # 32-bit floor, so we always process first
 	# Get settings
 	var settings_path = ProjectSettings.get_setting(
 		"InputRelay/settings_resource_path",
