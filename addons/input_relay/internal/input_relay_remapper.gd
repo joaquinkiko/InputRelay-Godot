@@ -238,6 +238,12 @@ func _map_stick_direction(set_key: StringName, layer_key: StringName, action_nam
 		for device in player.devices:
 			if device.index == InputRelay.KEYBOARD_INDEX:
 				_add_key_mouse_event(full_name, mouse_key_button, device.index)
+				if stick_pad.mouse_motion:
+					var event := InputEventJoypadMotion.new()
+					event.device = device.index
+					event.axis = InputActionDef.PROXY_MOUSE_X if is_horizontal else InputActionDef.PROXY_MOUSE_Y
+					event.axis_value = sign
+					InputMap.action_add_event(full_name, event)
 			else:
 				_add_joy_button_event(full_name, joy_button, device.index)
 				if axes.size() == 2:
