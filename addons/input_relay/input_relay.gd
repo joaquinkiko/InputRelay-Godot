@@ -156,7 +156,7 @@ func _process(delta: float) -> void:
 	# Process Gyro
 	for device in devices:
 		if device.supports_motion() && device.player:
-			_gyro_axis += Input.get_joy_gyroscope(device.index) * _GYRO_SENSITIVITY * delta
+			_gyro_axis += device.get_gyro() * _GYRO_SENSITIVITY * delta
 			_smoothed_gyro_axis = _smoothed_gyro_axis.lerp(_gyro_axis, 1.0 - exp(-_MOTION_SMOOTHING_SPEED * delta))
 			_gyro_axis = _gyro_axis.lerp(Vector3.ZERO, 1.0 - exp(-_MOTION_DECAY_RATE * delta))
 			_proxy_joy_motion(device.index, InputActionDef.PROXY_GYRO_X, _smoothed_gyro_axis.x)
