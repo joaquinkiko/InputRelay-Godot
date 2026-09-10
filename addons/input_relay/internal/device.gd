@@ -25,6 +25,8 @@ var feature_flags: int
 var glyph_map: DeviceGlyphMap
 ## Player assigned to
 var player: InputRelayPlayer
+## Steam Input handle for this device, 0 if not Steam-managed
+var steam_input_handle: int
 
 func _init(device_id: int, device_name: String, settings: InputRelaySettings = null) -> void:
 	self.index = device_id
@@ -70,3 +72,7 @@ func supports_motion() -> bool:
 ## Returns true if device supports vibrations
 func supports_haptic() -> bool:
 	return feature_flags & Features.HAPTIC
+
+## True if this device is currently managed by Steam Input
+func is_steam_managed() -> bool:
+	return steam_input_handle != 0
