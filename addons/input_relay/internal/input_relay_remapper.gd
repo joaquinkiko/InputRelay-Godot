@@ -740,6 +740,34 @@ func get_remap_update_invert_y(set_key: StringName, layer: StringName, action: S
 		return action_def.invert_y
 	return false
 
+## Digital button toggle setter
+func remap_update_toggle(set_key: StringName, layer: StringName, action: StringName, player: int, new_value: bool) -> void:
+	var action_def := _validate_remap_target(set_key, layer, action, player)
+	if action_def == null:
+		return
+	if not (action_def is InputActionDefDigital):
+		push_error("Action at %s is not a Digital action" % _remap_key(set_key, layer, action))
+		return
+	_remap_write("Toggle", set_key, layer, action, player, new_value)
+
+## Digital button toggle eraser
+func clear_remap_update_toggle(set_key: StringName, layer: StringName, action: StringName, player: int) -> void:
+	if _validate_remap_target(set_key, layer, action, player) == null:
+		return
+	_remap_erase("Toggle", set_key, layer, action, player)
+
+## Digital button toggle getter. Falls back to default [InputActionDefDigital] value
+func get_remap_update_toggle(set_key: StringName, layer: StringName, action: StringName, player: int) -> bool:
+	var action_def := _validate_remap_target(set_key, layer, action, player)
+	if action_def == null:
+		return false
+	var value = _remap_read("Toggle", set_key, layer, action, player, null)
+	if value != null:
+		return value
+	if action_def is InputActionDefDigital:
+		return action_def.is_toggle
+	return false
+
 ## Clears all remaps for specified player, or 0 for only global remaps (specific player remaps will remain)
 func clear_remaps(player: int) -> void:
 	if player < 0 || player > InputRelay.MAX_PLAYERS:
