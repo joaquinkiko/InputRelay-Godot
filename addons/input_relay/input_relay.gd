@@ -17,6 +17,15 @@ const _HAPTIC_WEAK = 	Vector3(0.25, 0.15, 0.10)
 const _HAPTIC_MEDIUM = 	Vector3(0.45, 0.30, 0.15)
 const _HAPTIC_STRONG = 	Vector3(0.75, 0.55, 0.25)
 
+## Base Sensitivity for processing mouse motion
+const _MOUSE_SENSITIVITY := 0.01
+## Base Sensitivity for processing gyro motion
+const _GYRO_SENSITIVITY := 2.0
+## Smoothing speed for mouse/gyro (higher = snappier)
+const _MOTION_SMOOTHING_SPEED := 20.0
+## How quickly mouse/gyro settles to 0 when idle
+const _MOTION_DECAY_RATE := 12.0
+
 # Default setting for remap helper
 const _DEFAULT_REMAP_ESCAPE_KEYBOARD := [
 	InputActionDef.MouseKeyButton.ESCAPE,
@@ -42,6 +51,11 @@ var last_player_input: int
 
 ## Number of player awaiting assignment from next device. 0 if none waiting.
 var player_awaiting_assignment: int = 0
+
+var _mouse_axis: Vector2 = Vector2.ZERO
+var _smoothed_mouse_axis: Vector2 = Vector2.ZERO
+var _gyro_axis: Vector3 = Vector3.ZERO
+var _smoothed_gyro_axis: Vector3 = Vector3.ZERO
 
 func _ready() -> void:
 	# Get settings
@@ -105,11 +119,36 @@ func _input(event: InputEvent) -> void:
 					grab_first_focusable()
 				player.last_device = event.device
 				remapper.refresh_translations()
-	# TODO: Poll mouse
-	# TODO: Poll gyro
+	# Poll mouse
+	if event is InputEventMouseMotion:
+		_mouse_axis += event.screen_relative * _MOUSE_SENSITIVITY
 	
 	# TODO: Normalize directional input
 	# TODO: Apply directional sensitivity
+
+func _process(delta: float) -> void:
+	# Process mouse
+	if _mouse_axis != Vector2.ZERO:
+		_smoothed_mouse_axis = _smoothed_mouse_axis.lerp(_mouse_axis, 1.0 - exp(-_MOTION_SMOOTHING_SPEED * delta))
+		_mouse_axis = _mouse_axis.lerp(Vector2.ZERO, 1.0 - exp(-_MOTION_DECAY_RATE * delta))
+		_proxy_joy_motion(KEYBOARD_INDEX, InputActionDef.PROXY_MOUSE_X, _smoothed_mouse_axis.x)
+		_proxy_joy_motion(KEYBOARD_INDEX, InputActionDef.PROXY_MOUSE_Y, _smoothed_mouse_axis.y)
+	# Process Gyro
+	for device in devices:
+		if device.supports_motion() && device.player:
+			_gyro_axis += Input.get_joy_gyroscope(device.index) * _GYRO_SENSITIVITY * delta
+			_smoothed_gyro_axis = _smoothed_gyro_axis.lerp(_gyro_axis, 1.0 - exp(-_MOTION_SMOOTHING_SPEED * delta))
+			_gyro_axis = _gyro_axis.lerp(Vector3.ZERO, 1.0 - exp(-_MOTION_DECAY_RATE * delta))
+			_proxy_joy_motion(device.index, InputActionDef.PROXY_GYRO_X, _smoothed_gyro_axis.x)
+			_proxy_joy_motion(device.index, InputActionDef.PROXY_GYRO_Y, _smoothed_gyro_axis.y)
+			_proxy_joy_motion(device.index, InputActionDef.PROXY_GYRO_Z, _smoothed_gyro_axis.z)
+
+func _proxy_joy_motion(device: int, axis: JoyAxis, value: float) -> void:
+	var event := InputEventJoypadMotion.new()
+	event.device = device
+	event.axis = axis
+	event.axis_value = clamp(value, -1.0, 1.0)
+	Input.parse_input_event(event)
 
 func _refreshed_mappings() -> void:
 	# TODO list actions that need to be polled for and managed in input loop
