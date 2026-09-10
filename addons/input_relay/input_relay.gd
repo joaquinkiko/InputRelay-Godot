@@ -420,7 +420,7 @@ func stop_vibrating_player(player: int) -> void:
 				if not device.supports_haptic(): continue
 				device.stop_vibrating()
 		return
-	for device in players[player].devices:
+	for device in get_player(player).devices:
 		if not device.supports_haptic(): continue
 		device.stop_vibrating()
 
