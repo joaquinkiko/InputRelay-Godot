@@ -94,3 +94,45 @@ func supports_haptic() -> bool:
 ## True if this device is currently managed by Steam Input
 func is_steam_managed() -> bool:
 	return steam_input_handle != 0
+
+## Sets device light color, routing through Steam or native API
+func set_light(color: Color) -> void:
+	if not supports_lights():
+		return
+	if is_steam_managed():
+		Engine.get_singleton("Steam").setLEDColor(steam_input_handle, roundi(color.r*255), roundi(color.g*255), roundi(color.b*255), 0)
+	else:
+		Input.set_joy_light(index, color)
+
+## Starts vibration, routing through Steam or native API
+func vibrate(weak_motor: float, strong_motor: float, duration: float) -> void:
+	if not supports_haptic():
+		return
+	if is_steam_managed():
+		var steam := Engine.get_singleton("Steam")
+		steam.triggerVibration(steam_input_handle, int(weak_motor * 65535), int(strong_motor * 65535))
+		if duration > 0.0:
+			(Engine.get_main_loop() as SceneTree).create_timer(duration).timeout.connect(
+				func(): steam.triggerVibration(steam_input_handle, 0, 0))
+	else:
+		Input.start_joy_vibration(index, weak_motor, strong_motor, duration)
+
+## Stops vibration, routing through Steam or native API
+func stop_vibrating() -> void:
+	if is_steam_managed():
+		Engine.get_singleton("Steam").triggerVibration(steam_input_handle, 0, 0)
+	else:
+		Input.stop_joy_vibration(index)
+
+## True if device is currently vibrating. Steam doesn't expose this, so always false there.
+func is_vibrating() -> bool:
+	if is_steam_managed():
+		return false
+	return Input.is_joy_vibrating(index)
+
+## Returns current gyro rotation velocity, routing through Steam or native API
+func get_gyro() -> Vector3:
+	if is_steam_managed():
+		var motion: Dictionary = Engine.get_singleton("Steam").getMotionData(steam_input_handle)
+		return Vector3(motion.get("rotVelX", 0.0), motion.get("rotVelY", 0.0), motion.get("rotVelZ", 0.0))
+	return Input.get_joy_gyroscope(index)
