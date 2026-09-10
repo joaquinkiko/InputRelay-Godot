@@ -64,6 +64,7 @@ var _toggled_actions: Array[StringName]
 
 var _steam_handle_to_device_id: Dictionary[int, int] = {}
 var _next_steam_device_id := STEAM_DEVICE_ID_OFFSET
+var _steam_action_set_handles: Dictionary[StringName, int] = {}
 
 func _ready() -> void:
 	# Ensure input gets to us first
@@ -322,6 +323,9 @@ func assign_device(device_id: int, player_number: int) -> void:
 		Input.set_joy_light(device.index, player.color)
 	remapper.refresh_mappings()
 	remapper.refresh_translations()
+	# Setup the steam input connections for this device
+	if device.is_steam_managed():
+		_steam_activate_player_action_set(player.number)
 
 func unassign_device(device_id: int, player_number: int) -> void:
 	var device := get_device(device_id)
@@ -468,6 +472,8 @@ func set_player_action_set(player_number: int, set_key: StringName) -> void:
 		var using_joy := player.last_device != KEYBOARD_INDEX
 		get_player_action_set_and_layers(player_number).pop_back().apply_mouse_mode(using_joy)
 	remapper.refresh_mappings()
+	# Update Steam Input for this player
+	_steam_activate_player_action_set(player_number)
 
 ## Changes player's active layers. Must be part of player's current set.
 ## Pass empty array to clear layers. First layers in array have lowest priority.
@@ -489,6 +495,8 @@ func set_player_action_layers(player_number: int, layer_keys: Array[StringName])
 		var using_joy := player.last_device != KEYBOARD_INDEX
 		get_player_action_set_and_layers(player_number).pop_back().apply_mouse_mode(using_joy)
 	remapper.refresh_mappings()
+	# Update Steam Input for this player
+	_steam_activate_player_action_set(player_number)
 
 ## Returns true if player has Mouse and Keyboard assigned to them.
 func has_mouse_and_keyboard_assigned(player_number: int) -> bool:
@@ -940,3 +948,27 @@ func _using_steam_input() -> bool:
 	if not Engine.has_singleton("Steam"):
 		return false
 	return not Engine.get_singleton("Steam").getConnectedControllers().is_empty()
+
+## Returns (and caches) a Steam Action Set handle for a set or layer key
+func _steam_get_action_set_handle(set_key: StringName) -> int:
+	if not _using_steam_input(): return -1
+	if not _steam_action_set_handles.has(set_key):
+		_steam_action_set_handles[set_key] = Engine.get_singleton("Steam").getActionSetHandle(set_key)
+	return _steam_action_set_handles[set_key]
+
+## Pushes a player's current set and layers to Steam for each Steam-managed device they own
+func _steam_activate_player_action_set(player_number: int) -> void:
+	if not _using_steam_input():
+		return
+	var player := get_player(player_number)
+	if player == null:
+		return
+	var steam := Engine.get_singleton("Steam")
+	var set_handle := _steam_get_action_set_handle(player.current_action_set)
+	for device in player.devices:
+		if not device.is_steam_managed():
+			continue
+		steam.activateActionSet(device.steam_input_handle, set_handle)
+		steam.deactivateAllActionSetLayers(device.steam_input_handle)
+		for layer_key in player.current_action_layers:
+			steam.activateActionSetLayer(device.steam_input_handle, _steam_get_action_set_handle(layer_key))
