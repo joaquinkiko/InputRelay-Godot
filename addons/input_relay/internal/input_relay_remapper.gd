@@ -229,6 +229,7 @@ func _map_action(set_key: StringName, layer_key: StringName, action_name: String
 					})
 		for direction in _STICK_DIRECTIONS: # Need to map multiple directions
 			_map_stick_direction(set_key, layer_key, action_name, direction, action_def, player)
+			_map_dpad_direction(set_key, layer_key, action_name, direction, action_def, player)
 		if action_def is InputActionDefStickPadVelocity:
 			_action_def_sensitivites[action_def] = get_remap_update_sensitivity(set_key, layer_key, action_name, player.number)
 		return
