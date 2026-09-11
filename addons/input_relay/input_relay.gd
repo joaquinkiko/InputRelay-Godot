@@ -142,7 +142,7 @@ func _input(event: InputEvent) -> void:
 		var action_def := remapper.mapped_action_defs.get(event.action, null)
 		if action_def is InputActionDefDirectional:
 			_normalize_directional_action(event, action_def)
-		elif action_def is InputActionDefDigital && action_def.is_toggle:
+		elif action_def is InputActionDefDigital && remapper._action_def_is_toggle.get(action_def, action_def.is_toggle):
 			_handle_toggle_action(event, action_def)
 
 func _process(delta: float) -> void:
@@ -207,7 +207,7 @@ func _normalize_directional_action(event: InputEventAction, action_def: InputAct
 		direction = direction.normalized()
 	# Apply sensitivity
 	if action_def is InputActionDefStickPadVelocity:
-		direction *= action_def.sensitivity
+		direction *= remapper._action_def_sensitivites.get(action_def, action_def.sensitivity)
 	# Write normalized values back to [Input]
 	_proxy_set_action_strength(base_name + "_right" + player_suffix, maxf(direction.x, 0.0))
 	_proxy_set_action_strength(base_name + "_left" + player_suffix, maxf(-direction.x, 0.0))
