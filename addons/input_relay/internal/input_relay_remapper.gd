@@ -169,6 +169,8 @@ func _get_input_string(set_key: StringName, layer_key: StringName, action_key: S
 	var device := InputRelay.get_device(player.last_device)
 	if device == null || device.glyph_map == null:
 		return ""
+	if device.is_steam_managed():
+		return InputRelay._steam_get_action_string(player, device, action_key)
 	if device.index == InputRelay.KEYBOARD_INDEX:
 		var button := get_remap_key_mouse(set_key, layer_key, action_key, player_number)
 		return _resolve_button_string(device.glyph_map, InputActionDef.mouse_key_button_to_string(button))
@@ -183,6 +185,8 @@ func _get_directional_input_string(set_key: StringName, layer_key: StringName, a
 	var device := InputRelay.get_device(player.last_device)
 	if device == null || device.glyph_map == null:
 		return ""
+	if device.is_steam_managed():
+		return InputRelay._steam_get_action_string(player, device, action_key)
 	if device.index == InputRelay.KEYBOARD_INDEX:
 		if direction_index == -1:
 			if device.glyph_map is DeviceGlyphMapKeyboard:
@@ -801,32 +805,33 @@ func process_steam_dispatch() -> void:
 		return
 	var steam := Engine.get_singleton("Steam")
 	for entry in steam_dispatch_entries:
+		var device_id: int = InputRelay._steam_handle_to_device_id.get(entry["steam_input_handle"], 0)
 		match entry["kind"]:
 			"digital":
 				var handle := InputRelay._steam_get_digital_action_handle(entry["steam_action_name"])
 				var pressed: bool = steam.getDigitalActionData(entry["steam_input_handle"], handle).bState
-				_dispatch_digital_edge(entry["target_action"], pressed)
+				_dispatch_digital_edge(entry["target_action"], pressed, device_id)
 			"analog_trigger":
 				var handle := InputRelay._steam_get_analog_action_handle(entry["steam_action_name"])
 				var strength: float = steam.getAnalogActionData(entry["steam_input_handle"], handle).x
-				_dispatch_analog_event(entry["target_action"], strength)
+				_dispatch_analog_event(entry["target_action"], strength, device_id)
 			"stick":
 				var handle := InputRelay._steam_get_analog_action_handle(entry["steam_action_name"])
 				var data: Dictionary = steam.getAnalogActionData(entry["steam_input_handle"], handle)
-				_dispatch_analog_event(entry["right_action"], maxf(data.x, 0.0))
-				_dispatch_analog_event(entry["left_action"], maxf(-data.x, 0.0))
-				_dispatch_analog_event(entry["down_action"], maxf(data.y, 0.0))
-				_dispatch_analog_event(entry["up_action"], maxf(-data.y, 0.0))
+				_dispatch_analog_event(entry["right_action"], maxf(data.x, 0.0), device_id)
+				_dispatch_analog_event(entry["left_action"], maxf(-data.x, 0.0), device_id)
+				_dispatch_analog_event(entry["down_action"], maxf(data.y, 0.0), device_id)
+				_dispatch_analog_event(entry["up_action"], maxf(-data.y, 0.0), device_id)
 			"dpad_analog":
 				var handle := InputRelay._steam_get_analog_action_handle(entry["steam_action_name"])
 				var data: Dictionary = steam.getAnalogActionData(entry["steam_input_handle"], handle)
-				_dispatch_analog_event(entry["right_action"], maxf(data.x, 0.0))
-				_dispatch_analog_event(entry["left_action"], maxf(-data.x, 0.0))
-				_dispatch_analog_event(entry["down_action"], maxf(data.y, 0.0))
-				_dispatch_analog_event(entry["up_action"], maxf(-data.y, 0.0))
+				_dispatch_analog_event(entry["right_action"], maxf(data.x, 0.0), device_id)
+				_dispatch_analog_event(entry["left_action"], maxf(-data.x, 0.0), device_id)
+				_dispatch_analog_event(entry["down_action"], maxf(data.y, 0.0), device_id)
+				_dispatch_analog_event(entry["up_action"], maxf(-data.y, 0.0), device_id)
 
 ## Fires a press/release InputEventAction only on state change
-func _dispatch_digital_edge(action: StringName, pressed: bool) -> void:
+func _dispatch_digital_edge(action: StringName, pressed: bool, device_id: int) -> void:
 	var key := String(action)
 	if _steam_previous_digital.get(key, false) == pressed:
 		return
@@ -834,6 +839,7 @@ func _dispatch_digital_edge(action: StringName, pressed: bool) -> void:
 	var event := InputEventAction.new()
 	event.action = action
 	event.pressed = pressed
+	event.device = device_id
 	Input.parse_input_event(event)
 	if pressed:
 		Input.action_press(action, 1.0)
@@ -842,11 +848,12 @@ func _dispatch_digital_edge(action: StringName, pressed: bool) -> void:
 	
 
 ## Fires a continuous analog InputEventAction, letting deadzone/strength handling do the rest
-func _dispatch_analog_event(action: StringName, strength: float) -> void:
+func _dispatch_analog_event(action: StringName, strength: float, device_id: int) -> void:
 	var event := InputEventAction.new()
 	event.action = action
 	event.strength = strength
 	event.pressed = strength > 0.0
+	event.device = device_id
 	Input.parse_input_event(event)
 	if strength > 0.0:
 		Input.action_press(action, strength)

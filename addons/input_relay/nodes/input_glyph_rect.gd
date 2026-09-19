@@ -40,6 +40,9 @@ func refresh() -> void:
 	if device == null || device.glyph_map == null:
 		texture = null
 		return
+	if device.is_steam_managed():
+		texture = InputRelay._steam_get_action_glyph(player, device, action_name)
+		return
 	var input_name := _resolve_input_name(device)
 	if input_name.is_empty():
 		texture = null
@@ -52,13 +55,12 @@ func _resolve_input_name(device: InputRelayDevice) -> String:
 	if direction == Direction.NONE:
 		if is_keyboard:
 			if InputRelay.remapper._find_action_def(set_key, layer_key, action_name) is InputActionDefStickPad:
-				var motion := InputRelay.remapper.get_remap_directional_joy_motion(set_key, layer_key, action_name, player_number)
-				if motion != InputActionDef.JoypadMotion.NONE:
-					InputActionDef.joypad_motion_to_string(motion).to_lower()
+				if InputRelay.remapper.get_remap_update_mouse_motion(set_key, layer_key, action_name, player_number):
+					return "mouse_motion"
 			else: # Is button, not motion
 				var button := InputRelay.remapper.get_remap_key_mouse(set_key, layer_key, action_name, player_number)
 				if button != InputActionDef.MouseKeyButton.NONE:
-					InputActionDef.mouse_key_button_to_string(button).to_lower()
+					return InputActionDef.mouse_key_button_to_string(button).to_lower()
 		else: # Is joy
 			if InputRelay.remapper._find_action_def(set_key, layer_key, action_name) is InputActionDefStickPad:
 				var motion := InputRelay.remapper.get_remap_directional_joy_motion(set_key, layer_key, action_name, player_number)
@@ -72,7 +74,7 @@ func _resolve_input_name(device: InputRelayDevice) -> String:
 		if is_keyboard:
 			var button := InputRelay.remapper.get_remap_directional_key_mouse(set_key, layer_key, action_name, player_number)[direction]
 			if button != InputActionDef.MouseKeyButton.NONE:
-				InputActionDef.mouse_key_button_to_string(button).to_lower()
+				return InputActionDef.mouse_key_button_to_string(button).to_lower()
 		else: # Is joy
 			var button := InputRelay.remapper.get_remap_directional_joy_button(set_key, layer_key, action_name, player_number)[direction]
 			if button != InputActionDef.JoypadButton.NONE:

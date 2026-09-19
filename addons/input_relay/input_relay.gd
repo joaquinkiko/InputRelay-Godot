@@ -67,6 +67,7 @@ var _next_steam_device_id := STEAM_DEVICE_ID_OFFSET
 var _steam_action_set_handles: Dictionary[StringName, int] = {}
 var _steam_digital_action_handles: Dictionary[StringName, int] = {}
 var _steam_analog_action_handles: Dictionary[StringName, int] = {}
+var _steam_glyph_cache: Dictionary[int, Texture2D] = {}
 
 func _ready() -> void:
 	# Ensure input gets to us first
@@ -723,6 +724,12 @@ func get_player_action_glyph(player_number: int, action_name: StringName) -> Tex
 	var device := get_device(get_player(player_number).last_device)
 	if device == null || device.glyph_map == null:
 		return null
+	if device.is_steam_managed():
+		var steam_glyph := _steam_get_action_glyph(get_player(player_number), device, action_name)
+		if steam_glyph != null:
+			return steam_glyph
+		else:
+			return device.glyph_map.fallback_glyph
 	var button_name := _get_player_action_button_name(player_number, action_name, device.index == KEYBOARD_INDEX)
 	var glyph: Texture2D = device.glyph_map.get("%s_glyph"%button_name)
 	if glyph == null:
@@ -737,6 +744,8 @@ func get_player_action_string(player_number: int, action_name: StringName) -> St
 	var device := get_device(get_player(player_number).last_device)
 	if device == null || device.glyph_map == null:
 		return &""
+	if device.is_steam_managed():
+		return StringName(_steam_get_action_string(get_player(player_number), device, action_name))
 	var button_name := _get_player_action_button_name(player_number, action_name, device.index == KEYBOARD_INDEX)
 	if button_name.is_empty():
 		return &""
@@ -822,6 +831,8 @@ func get_player_directional_action_string(player_number: int, action_name: Strin
 	var device := get_device(get_player(player_number).last_device)
 	if device == null || device.glyph_map == null:
 		return &""
+	if device.is_steam_managed():
+		return StringName(_steam_get_action_string(get_player(player_number), device, action_name))
 	var button_name := _get_player_directional_action_button_name(player_number, action_name,
 		device.index == KEYBOARD_INDEX, direction)
 	if button_name.is_empty():
@@ -987,3 +998,53 @@ func _steam_get_analog_action_handle(action_name: StringName) -> int:
 	if not _steam_analog_action_handles.has(action_name):
 		_steam_analog_action_handles[action_name] = Engine.get_singleton("Steam").getAnalogActionHandle(action_name)
 	return _steam_analog_action_handles[action_name]
+
+## Returns the first Steam action origin bound to an action, or 0 if none
+func _steam_get_action_origin(player: InputRelayPlayer, device: InputRelayDevice, action_name: StringName) -> int:
+	var action_set: InputActionSet = settings.action_sets.get(player.current_action_set)
+	if action_set == null:
+		return 0
+	var action_def: InputActionDef = action_set.actions.get(action_name)
+	var set_key: StringName = player.current_action_set
+	for layer_key in player.current_action_layers:
+		var layer: InputActionSet = action_set.layers.get(layer_key)
+		if layer != null && layer.actions.has(action_name):
+			action_def = layer.actions[action_name]
+			set_key = layer_key
+	if action_def == null:
+		return 0
+	var steam := Engine.get_singleton("Steam")
+	var set_handle := _steam_get_action_set_handle(set_key)
+	var origins: Array
+	if action_def is InputActionDefDigital:
+		origins = steam.getDigitalActionOrigins(device.steam_input_handle, set_handle, _steam_get_digital_action_handle(action_name))
+	else:
+		origins = steam.getAnalogActionOrigins(device.steam_input_handle, set_handle, _steam_get_analog_action_handle(action_name))
+	if origins.is_empty():
+		return 0
+	else:
+		return origins[0]
+
+## Returns (and caches) the glyph texture for a Steam action origin
+func _steam_get_origin_glyph(origin: int) -> Texture2D:
+	if origin == 0:
+		return null
+	if _steam_glyph_cache.has(origin):
+		return _steam_glyph_cache[origin]
+	var steam := Engine.get_singleton("Steam")
+	var path: String = steam.getGlyphPNGForActionOrigin(origin, steam.INPUT_GLYPH_SIZE_MEDIUM, 0)
+	var image := Image.load_from_file(path)
+	if image == null:
+		return null
+	var texture := ImageTexture.create_from_image(image)
+	_steam_glyph_cache[origin] = texture
+	return texture
+
+func _steam_get_action_glyph(player: InputRelayPlayer, device: InputRelayDevice, action_name: StringName) -> Texture2D:
+	return _steam_get_origin_glyph(_steam_get_action_origin(player, device, action_name))
+
+func _steam_get_action_string(player: InputRelayPlayer, device: InputRelayDevice, action_name: StringName) -> String:
+	var origin := _steam_get_action_origin(player, device, action_name)
+	if origin == 0:
+		return ""
+	return Engine.get_singleton("Steam").getStringForActionOrigin(origin)
