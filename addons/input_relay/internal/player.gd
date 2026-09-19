@@ -12,14 +12,14 @@ var color: Color:
 		_color = value
 		for device in devices:
 			if device.supports_lights():
-				device.set_light(color)
+				device.set_light(value)
 var _color := Color.WHITE
 ## Key of currently active action set
 var current_action_set: StringName
 ## Key(s) of currently active layers on action set
 var current_action_layers: Array[StringName]
 ## Index of last device to receive input from owned devices
-var last_device: int
+var last_device: int = -1
 
 func _init(new_number: int) -> void:
 	self.number = new_number
