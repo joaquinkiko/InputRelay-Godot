@@ -181,9 +181,9 @@ func _handle_toggle_action(event: InputEventAction, action_def: InputActionDefDi
 	# act as the real "release"
 	# Update [Input] data
 	if is_toggled:
-		Input.action_press(action_def.action_name)
+		Input.action_press(action_def.action)
 	else:
-		Input.action_release(action_def.action_name)
+		Input.action_release(action_def.action)
 	# Update event data
 	event.pressed = is_toggled
 
