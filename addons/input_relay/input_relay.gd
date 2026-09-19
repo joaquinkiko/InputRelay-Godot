@@ -531,6 +531,26 @@ func get_player_action_set_and_layers(player_number: int) -> Array[InputActionSe
 			output.append(action_set.layers[layer_key])
 	return output
 
+## Waits for next input, remaps a digital or analog action. Player 0 accepts any device and overwrites
+## for all players. Returns true if applied. Call with await.
+func remap_button_await(set_key: StringName, layer_key: StringName, action_name: StringName,
+						player_number: int, timeout_seconds: float = 5.0,
+						escape_key_mouse_buttons: Array[InputActionDef.MouseKeyButton] = _DEFAULT_REMAP_ESCAPE_KEYBOARD,
+						escape_joy_buttons: Array[InputActionDef.JoypadButton] = _DEFAULT_REMAP_ESCAPE_JOY
+						) -> bool:
+	if player_number < 0 || player_number > InputRelay.MAX_PLAYERS:
+		push_error("Player number out of range for remap: %d"%player_number)
+		return false
+	var result := await _await_next_button(_remap_devices_for_player(player_number), timeout_seconds, escape_key_mouse_buttons, escape_joy_buttons)
+	if not result.accepted:
+		return false
+	for target_player in _remap_target_players(player_number):
+		if result.is_key_mouse:
+			remapper.remap_key_mouse(set_key, layer_key, action_name, target_player, result.key_mouse_button)
+		else:
+			remapper.remap_joy_button(set_key, layer_key, action_name, target_player, result.joy_button)
+	return true
+
 ## Waits for next input, remaps dpad's up direction. Player 0 accepts any device and overwrites
 ## for all players. Returns true if applied. Call with await.
 func remap_dpad_up_await(set_key: StringName, layer_key: StringName, action_name: StringName,
