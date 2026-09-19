@@ -46,6 +46,6 @@ func _init() -> void:
 
 func apply_mouse_mode(using_joy: bool) -> void:
 	var mode: Input.MouseMode
-	if using_joy: mode = mouse_mode_keyboard
-	else: mode = mouse_mode_joy
+	if using_joy: mode = mouse_mode_joy
+	else: mode = mouse_mode_keyboard
 	Input.mouse_mode = mode
