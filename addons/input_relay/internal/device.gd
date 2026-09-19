@@ -32,6 +32,8 @@ func _init(device_id: int, device_name: String, settings: InputRelaySettings = n
 	self.index = device_id
 	self.name = device_name
 	self.steam_input_handle = steam_handle
+	if settings == null:
+		settings = InputRelaySettings.new()
 	#  If using Steam Input, allow it to take over rest of setup
 	if is_steam_managed():
 		var steam := Engine.get_singleton("Steam")
@@ -58,14 +60,12 @@ func _init(device_id: int, device_name: String, settings: InputRelaySettings = n
 		if Input.has_joy_vibration(device_id):
 			feature_flags |= Features.HAPTIC
 	# Get glyph map
-	if settings == null:
-		settings = InputRelaySettings.new()
 	var vendor_id: int = Vendors.MISC
 	var product_id: int = 0 # Currently unused
 	if Input.get_connected_joypads().has(device_id):
 		var info := Input.get_joy_info(device_id)
-		vendor_id = info["vendor_id"]
-		product_id = info["product_id"]
+		vendor_id = int(info.get("vendor_id", 0))
+		product_id = int(info.get("product_id", 0))
 	# Vendor takes priority on determining Glyph, otherwise fallback to name
 	var lname := device_name.to_lower()
 	if vendor_id == Vendors.MICROSOFT || "xbox" in lname || "xinput" in lname:
@@ -81,15 +81,15 @@ func _init(device_id: int, device_name: String, settings: InputRelaySettings = n
 
 ## Returns true if device supports custom light colors
 func supports_lights() -> bool:
-	return feature_flags & Features.LIGHTS
+	return (feature_flags & Features.LIGHTS) != 0
 
 ## Returns true if device supports gyro detection
 func supports_motion() -> bool:
-	return feature_flags & Features.MOTION
+	return (feature_flags & Features.MOTION) != 0
 
 ## Returns true if device supports vibrations
 func supports_haptic() -> bool:
-	return feature_flags & Features.HAPTIC
+	return (feature_flags & Features.HAPTIC) != 0
 
 ## True if this device is currently managed by Steam Input
 func is_steam_managed() -> bool:
@@ -110,7 +110,7 @@ func vibrate(weak_motor: float, strong_motor: float, duration: float) -> void:
 		return
 	if is_steam_managed():
 		var steam := Engine.get_singleton("Steam")
-		steam.triggerVibration(steam_input_handle, int(weak_motor * 65535), int(strong_motor * 65535))
+		steam.triggerVibration(steam_input_handle, int(strong_motor * 65535), int(weak_motor * 65535))
 		if duration > 0.0:
 			(Engine.get_main_loop() as SceneTree).create_timer(duration).timeout.connect(
 				func(): steam.triggerVibration(steam_input_handle, 0, 0))
@@ -134,5 +134,5 @@ func is_vibrating() -> bool:
 func get_gyro() -> Vector3:
 	if is_steam_managed():
 		var motion: Dictionary = Engine.get_singleton("Steam").getMotionData(steam_input_handle)
-		return Vector3(motion.get("rotVelX", 0.0), motion.get("rotVelY", 0.0), motion.get("rotVelZ", 0.0))
+		return Vector3(motion.get("rot_vel_x", 0.0), motion.get("rot_vel_y", 0.0), motion.get("rot_vel_z", 0.0))
 	return Input.get_joy_gyroscope(index)
