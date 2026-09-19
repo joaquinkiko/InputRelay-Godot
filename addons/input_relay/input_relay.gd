@@ -338,7 +338,7 @@ func unassign_device(device_id: int, player_number: int) -> void:
 	if device == null || player == null:
 		push_error("Passed invalid player or device number for device unassignment")
 	if device.player == player:
-		device.player == null
+		device.player = null
 	if player.devices.has(device):
 		player.devices.erase(device)
 	# Stop any vibration
