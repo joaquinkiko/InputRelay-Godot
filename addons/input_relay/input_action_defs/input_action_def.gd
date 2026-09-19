@@ -3,15 +3,15 @@
 class_name InputActionDef extends Resource
 
 ## Proxy for [JoyAxis] mouse X relative movement
-const PROXY_MOUSE_X: JoyAxis = 100
+const PROXY_MOUSE_X: JoyAxis = 100 as JoyAxis
 ## Proxy for [JoyAxis] mous Y relative movement
-const PROXY_MOUSE_Y: JoyAxis = 101
+const PROXY_MOUSE_Y: JoyAxis = 101 as JoyAxis
 ## Proxy for [JoyAxis] for gyro Pitch / Tilt forward-and-back
-const PROXY_GYRO_X: JoyAxis = 102
+const PROXY_GYRO_X: JoyAxis = 102 as JoyAxis
 ## Proxy for [JoyAxis] for gyro Yaw / Twist side-to-side
-const PROXY_GYRO_Y: JoyAxis = 103
+const PROXY_GYRO_Y: JoyAxis = 103 as JoyAxis
 ## Proxy for [JoyAxis] for gyro Roll / Tilt side-to-side
-const PROXY_GYRO_Z: JoyAxis = 104
+const PROXY_GYRO_Z: JoyAxis = 104 as JoyAxis
 
 enum MouseKeyButton{
 	NONE,
@@ -232,7 +232,7 @@ static func is_valid_joypad_motion(motion: int) -> bool:
 
 ## Converts a MouseKeyButton to its enum name, for config file storage
 static func mouse_key_button_to_string(button: MouseKeyButton) -> String:
-	return MouseKeyButton.find_key(button)
+	return MouseKeyButton.find_key(button) if is_valid_mouse_key_button(button) else "NONE"
 
 ## Converts an enum name back to a MouseKeyButton. Returns NONE if not found
 static func string_to_mouse_key_button(string: String) -> MouseKeyButton:
@@ -240,7 +240,7 @@ static func string_to_mouse_key_button(string: String) -> MouseKeyButton:
 
 ## Converts a JoypadButton to its enum name, for config file storage
 static func joypad_button_to_string(button: JoypadButton) -> String:
-	return JoypadButton.find_key(button)
+	return JoypadButton.find_key(button) if is_valid_joypad_button(button) else "NONE"
 
 ## Converts an enum name back to a JoypadButton. Returns NONE if not found
 static func string_to_joypad_button(string: String) -> JoypadButton:
@@ -248,7 +248,7 @@ static func string_to_joypad_button(string: String) -> JoypadButton:
 
 ## Converts a JoypadMotion to its enum name, for config file storage
 static func joypad_motion_to_string(motion: JoypadMotion) -> String:
-	return JoypadMotion.find_key(motion)
+	return JoypadMotion.find_key(motion) if is_valid_joypad_motion(motion) else "NONE"
 
 ## Converts an enum name back to a JoypadMotion. Returns NONE if not found
 static func string_to_joypad_motion(string: String) -> JoypadMotion:
