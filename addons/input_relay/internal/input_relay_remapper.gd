@@ -27,9 +27,9 @@ var steam_dispatch_entries: Array[Dictionary] = []
 var _steam_previous_digital: Dictionary[String, bool] = {}
 
 ## Maps [InputActionDefStickPadVelocity] to sensitivites
-var _action_def_sensitivites: Dictionary[InputActionDef, float]
+var _action_sensitivities: Dictionary[StringName, float]
 ## Maps [InputActionDefDigital] to toggle settings
-var _action_def_is_toggle: Dictionary[InputActionDef, bool]
+var _action_is_toggle: Dictionary[StringName, bool]
 
 func _init() -> void:
 	# Get remap path from project settings, and load settings if auto loading is enabled
@@ -70,8 +70,8 @@ func refresh_mappings() -> void:
 	mapped_action_defs.clear()
 	steam_dispatch_entries.clear()
 	_steam_previous_digital.clear()
-	_action_def_sensitivites.clear()
-	_action_def_is_toggle.clear()
+	_action_sensitivities.clear()
+	_action_is_toggle.clear()
 	
 	for player in InputRelay.players:
 		var action_set: InputActionSet = InputRelay.settings.action_sets.get(player.current_action_set)
@@ -231,7 +231,9 @@ func _map_action(set_key: StringName, layer_key: StringName, action_name: String
 			_map_stick_direction(set_key, layer_key, action_name, direction, action_def, player)
 			_map_dpad_direction(set_key, layer_key, action_name, direction, action_def, player)
 		if action_def is InputActionDefStickPadVelocity:
-			_action_def_sensitivites[action_def] = get_remap_update_sensitivity(set_key, layer_key, action_name, player.number)
+			var sensitivity := get_remap_update_sensitivity(set_key, layer_key, action_name, player.number)
+			for suffix in _action_suffixes(player):
+				_action_sensitivities[StringName("%s%s" % [action_name, suffix])] = sensitivity
 		return
 	if action_def is InputActionDefDirectional:
 		for device in player.devices:
@@ -253,7 +255,7 @@ func _map_action(set_key: StringName, layer_key: StringName, action_name: String
 		var full_name := StringName("%s%s"%[action_name, suffix])
 		InputMap.add_action(full_name)
 		if action_def is InputActionDefDigital:
-			_action_def_is_toggle[action_def] = get_remap_update_toggle(set_key, layer_key, action_name, player.number)
+			_action_is_toggle[full_name] = get_remap_update_toggle(set_key, layer_key, action_name, player.number)
 		if action_def is InputActionDefAnalog:
 			InputMap.action_set_deadzone(full_name, get_remap_update_deadzone(set_key, layer_key, action_name, player.number))
 		_managed_actions.append(full_name)
