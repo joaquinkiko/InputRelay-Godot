@@ -476,7 +476,9 @@ func set_player_action_set(player_number: int, set_key: StringName) -> void:
 	player.current_action_layers.clear()
 	if has_mouse_and_keyboard_assigned(player_number): # Update mouse mode if keyboard player
 		var using_joy := player.last_device != KEYBOARD_INDEX
-		get_player_action_set_and_layers(player_number).pop_back().apply_mouse_mode(using_joy)
+		var player_sets := get_player_action_set_and_layers(player_number)
+		if !player_sets.is_empty():
+			player_sets[player_sets.size() - 1].apply_mouse_mode(using_joy)
 	remapper.refresh_mappings()
 	# Update Steam Input for this player
 	_steam_activate_player_action_set(player_number)
