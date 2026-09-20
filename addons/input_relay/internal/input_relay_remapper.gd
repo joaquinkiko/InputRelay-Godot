@@ -10,7 +10,7 @@ const _STICK_DIRECTIONS: Array[StringName] = [&"up", &"down", &"left", &"right"]
 var _managed_actions: Array[StringName] = []
 
 ## Remaps configuration file
-var remap_file: ConfigFile
+var remap_file: ConfigFile = ConfigFile.new()
 
 ## Path to save/load [member remap_file]
 var remap_file_path: String
