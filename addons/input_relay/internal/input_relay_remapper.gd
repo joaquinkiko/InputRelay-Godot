@@ -255,6 +255,8 @@ func _map_action(set_key: StringName, layer_key: StringName, action_name: String
 	# Suffix is typically player number, though player 1 also uses blank, or no suffix
 	for suffix in _action_suffixes(player):
 		var full_name := StringName("%s%s"%[action_name, suffix])
+		if InputMap.has_action(full_name):
+			InputMap.erase_action(full_name) # Clear out before adding
 		InputMap.add_action(full_name)
 		if action_def is InputActionDefDigital:
 			_action_is_toggle[full_name] = get_remap_update_toggle(set_key, layer_key, action_name, player.number)
@@ -288,6 +290,8 @@ func _map_stick_direction(set_key: StringName, layer_key: StringName, action_nam
 	
 	for suffix in _action_suffixes(player):
 		var full_name := StringName("%s_%s%s" % [action_name, direction, suffix])
+		if InputMap.has_action(full_name):
+			InputMap.erase_action(full_name) # Clear out before adding
 		InputMap.add_action(full_name)
 		InputMap.action_set_deadzone(full_name, deadzone)
 		_managed_actions.append(full_name)
@@ -320,6 +324,8 @@ func _map_dpad_direction(set_key: StringName, layer_key: StringName, action_name
 	
 	for suffix in _action_suffixes(player):
 		var full_name := StringName("%s_%s%s" % [action_name, direction, suffix])
+		if InputMap.has_action(full_name):
+			InputMap.erase_action(full_name) # Clear out before adding
 		InputMap.add_action(full_name)
 		_managed_actions.append(full_name)
 		mapped_action_defs[full_name] = dpad
