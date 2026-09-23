@@ -30,10 +30,10 @@ const _MOTION_SMOOTHING_SPEED := 20.0
 const _MOTION_DECAY_RATE := 12.0
 
 # Default setting for remap helper
-const _DEFAULT_REMAP_ESCAPE_KEYBOARD := [
+const _DEFAULT_REMAP_ESCAPE_KEYBOARD: Array[InputActionDef.MouseKeyButton] = [
 	InputActionDef.MouseKeyButton.ESCAPE,
 ]
-const _DEFAULT_REMAP_ESCAPE_JOY := [
+const _DEFAULT_REMAP_ESCAPE_JOY: Array[InputActionDef.JoypadButton] = [
 	InputActionDef.JoypadButton.START,
 	InputActionDef.JoypadButton.GUIDE,
 ]
