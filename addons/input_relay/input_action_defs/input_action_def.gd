@@ -3,15 +3,15 @@
 class_name InputActionDef extends Resource
 
 ## Proxy for [JoyAxis] mouse X relative movement
-const PROXY_MOUSE_X: JoyAxis = 100 as JoyAxis
+const PROXY_MOUSE_X := 100
 ## Proxy for [JoyAxis] mous Y relative movement
-const PROXY_MOUSE_Y: JoyAxis = 101 as JoyAxis
+const PROXY_MOUSE_Y := 101
 ## Proxy for [JoyAxis] for gyro Pitch / Tilt forward-and-back
-const PROXY_GYRO_X: JoyAxis = 102 as JoyAxis
+const PROXY_GYRO_X := 102
 ## Proxy for [JoyAxis] for gyro Yaw / Twist side-to-side
-const PROXY_GYRO_Y: JoyAxis = 103 as JoyAxis
+const PROXY_GYRO_Y := 103
 ## Proxy for [JoyAxis] for gyro Roll / Tilt side-to-side
-const PROXY_GYRO_Z: JoyAxis = 104 as JoyAxis
+const PROXY_GYRO_Z := 104
 
 enum MouseKeyButton{
 	NONE,
@@ -211,7 +211,7 @@ static func is_axis_button(button: JoypadButton) -> bool:
 	return button == JoypadButton.LEFT_TRIGGER || button == JoypadButton.RIGHT_TRIGGER
 
 ## Converts a stick [JoypadMotion] to its [x, y] [JoyAxis] pair, if any
-static func joypad_motion_to_joy_axes(motion: JoypadMotion) -> Array[JoyAxis]:
+static func joypad_motion_to_joy_axes(motion: JoypadMotion) -> Array[int]:
 	match motion:
 		JoypadMotion.LEFT_STICK: return [JOY_AXIS_LEFT_X, JOY_AXIS_LEFT_Y]
 		JoypadMotion.RIGHT_STICK: return [JOY_AXIS_RIGHT_X, JOY_AXIS_RIGHT_Y]

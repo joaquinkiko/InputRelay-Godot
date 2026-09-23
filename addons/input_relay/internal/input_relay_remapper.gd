@@ -31,6 +31,9 @@ var _action_sensitivities: Dictionary[StringName, float]
 ## Maps [InputActionDefDigital] to toggle settings
 var _action_is_toggle: Dictionary[StringName, bool]
 
+## Proxy axis bindings (mouse/gyro motion), fired manually each frame instead of through InputMap
+var _proxy_axis_bindings: Array[Dictionary] = []
+
 func _init() -> void:
 	# Get remap path from project settings, and load settings if auto loading is enabled
 	remap_file_path = ProjectSettings.get_setting("InputRelay/remap_save_load_path", "user://input_remaps.cfg")
@@ -70,6 +73,7 @@ func refresh_mappings() -> void:
 	_steam_previous_digital.clear()
 	_action_sensitivities.clear()
 	_action_is_toggle.clear()
+	_proxy_axis_bindings.clear()
 	
 	for player in InputRelay.players:
 		var action_set: InputActionSet = InputRelay.settings.action_sets.get(player.current_action_set)
@@ -280,6 +284,7 @@ func _map_action(set_key: StringName, layer_key: StringName, action_name: String
 func _map_stick_direction(set_key: StringName, layer_key: StringName, action_name: StringName, direction: StringName, stick_pad: InputActionDefStickPad, player: InputRelayPlayer) -> void:
 	var direction_index := _STICK_DIRECTIONS.find(direction)
 	var mouse_key_button: InputActionDef.MouseKeyButton = get_remap_directional_key_mouse(set_key, layer_key, action_name, player.number)[direction_index]
+	var joy_motion := get_remap_directional_joy_motion(set_key, layer_key, action_name, player.number)
 	var axes := InputActionDef.joypad_motion_to_joy_axes(get_remap_directional_joy_motion(set_key, layer_key, action_name, player.number))
 	var joy_button: InputActionDef.JoypadButton = get_remap_directional_joy_button(set_key, layer_key, action_name, player.number)[direction_index]
 	var is_horizontal := direction == &"left" || direction == &"right"
@@ -302,19 +307,24 @@ func _map_stick_direction(set_key: StringName, layer_key: StringName, action_nam
 			if device.index == InputRelay.KEYBOARD_INDEX:
 				_add_key_mouse_event(full_name, mouse_key_button, device.index)
 				if stick_pad.mouse_motion:
-					var event := InputEventJoypadMotion.new()
-					event.device = device.index
-					event.axis = InputActionDef.PROXY_MOUSE_X if is_horizontal else InputActionDef.PROXY_MOUSE_Y
-					event.axis_value = sign
-					InputMap.action_add_event(full_name, event)
+					_proxy_axis_bindings.append({
+						"axis": InputActionDef.PROXY_MOUSE_X if is_horizontal else InputActionDef.PROXY_MOUSE_Y,
+						"device_id": device.index, "action": full_name, "sign": sign,
+					})
 			else:
 				_add_joy_button_event(full_name, joy_button, device.index)
 				if axes.size() == 2:
-					var event := InputEventJoypadMotion.new()
-					event.device = device.index
-					event.axis = axes[0] if is_horizontal else axes[1]
-					event.axis_value = sign
-					InputMap.action_add_event(full_name, event)
+					if joy_motion == InputActionDef.JoypadMotion.GYRO:
+						_proxy_axis_bindings.append({
+							"axis": axes[0] if is_horizontal else axes[1],
+							"device_id": device.index, "action": full_name, "sign": sign,
+						})
+					else:
+						var event := InputEventJoypadMotion.new()
+						event.device = device.index
+						event.axis = axes[0] if is_horizontal else axes[1]
+						event.axis_value = sign
+						InputMap.action_add_event(full_name, event)
 
 ## Registers one directional sub-action for a dpad: "[name]_[direction][suffix]"
 func _map_dpad_direction(set_key: StringName, layer_key: StringName, action_name: StringName, direction: StringName, dpad: InputActionDefDirectional, player: InputRelayPlayer) -> void:
@@ -870,3 +880,19 @@ func clear_steam_digital_state_for_handle(steam_input_handle: int) -> void:
 	for entry in steam_dispatch_entries:
 		if entry.get("steam_input_handle") == steam_input_handle and entry.has("target_action"):
 			_steam_previous_digital.erase(String(entry["target_action"]))
+
+## Drives a proxy axis (mouse/gyro) into its bound actions, honoring each action's InputMap deadzone
+func dispatch_proxy_axis(axis: int, device_id: int, value: float) -> void:
+	value = clampf(value, -1.0, 1.0)
+	for binding in _proxy_axis_bindings:
+		if binding["axis"] != axis or binding["device_id"] != device_id:
+			continue
+		var signed_value: float = value * binding["sign"]
+		var deadzone := InputMap.action_get_deadzone(binding["action"])
+		var strength := 0.0
+		if signed_value > deadzone:
+			strength = (signed_value - deadzone) / (1.0 - deadzone)
+		if strength > 0.0:
+			Input.action_press(binding["action"], strength)
+		else:
+			Input.action_release(binding["action"])

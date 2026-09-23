@@ -159,17 +159,17 @@ func _process(delta: float) -> void:
 	if _mouse_axis != Vector2.ZERO:
 		_smoothed_mouse_axis = _smoothed_mouse_axis.lerp(_mouse_axis, 1.0 - exp(-_MOTION_SMOOTHING_SPEED * delta))
 		_mouse_axis = _mouse_axis.lerp(Vector2.ZERO, 1.0 - exp(-_MOTION_DECAY_RATE * delta))
-		_proxy_joy_motion(KEYBOARD_INDEX, InputActionDef.PROXY_MOUSE_X, _smoothed_mouse_axis.x)
-		_proxy_joy_motion(KEYBOARD_INDEX, InputActionDef.PROXY_MOUSE_Y, _smoothed_mouse_axis.y)
+		remapper.dispatch_proxy_axis(InputActionDef.PROXY_MOUSE_X, KEYBOARD_INDEX, _smoothed_mouse_axis.x)
+		remapper.dispatch_proxy_axis(InputActionDef.PROXY_MOUSE_Y, KEYBOARD_INDEX, _smoothed_mouse_axis.y)
 	# Process Gyro
 	for device in devices:
 		if device.supports_motion() && device.player:
 			_gyro_axis += device.get_gyro() * _GYRO_SENSITIVITY * delta
 			_smoothed_gyro_axis = _smoothed_gyro_axis.lerp(_gyro_axis, 1.0 - exp(-_MOTION_SMOOTHING_SPEED * delta))
 			_gyro_axis = _gyro_axis.lerp(Vector3.ZERO, 1.0 - exp(-_MOTION_DECAY_RATE * delta))
-			_proxy_joy_motion(device.index, InputActionDef.PROXY_GYRO_X, _smoothed_gyro_axis.x)
-			_proxy_joy_motion(device.index, InputActionDef.PROXY_GYRO_Y, _smoothed_gyro_axis.y)
-			_proxy_joy_motion(device.index, InputActionDef.PROXY_GYRO_Z, _smoothed_gyro_axis.z)
+			remapper.dispatch_proxy_axis(InputActionDef.PROXY_GYRO_X, device.index, _smoothed_gyro_axis.x)
+			remapper.dispatch_proxy_axis(InputActionDef.PROXY_GYRO_Y, device.index, _smoothed_gyro_axis.y)
+			remapper.dispatch_proxy_axis(InputActionDef.PROXY_GYRO_Z, device.index, _smoothed_gyro_axis.z)
 
 ## Handles toggling for [InputActionDefDigital] actions
 func _handle_toggle_action(event: InputEventAction, action_def: InputActionDefDirectional) -> void:
@@ -245,13 +245,6 @@ func _proxy_set_action_strength(action: StringName, strength: float) -> void:
 		Input.action_press(action, strength)
 	else:
 		Input.action_release(action)
-
-func _proxy_joy_motion(device: int, axis: JoyAxis, value: float) -> void:
-	var event := InputEventJoypadMotion.new()
-	event.device = device
-	event.axis = axis
-	event.axis_value = clamp(value, -1.0, 1.0)
-	Input.parse_input_event(event)
 
 func _refreshed_mappings() -> void:
 	# TODO list actions that need to be polled for and managed in input loop
