@@ -84,7 +84,7 @@ func test_none_motion_has_no_axes() -> void:
 	assert_eq(InputActionDef.joypad_motion_to_joy_axes(InputActionDef.JoypadMotion.NONE).size(), 0)
 
 func test_gyro_axes() -> void:
-	assert_eq(InputActionDef.joypad_motion_to_joy_axes(InputActionDef.JoypadMotion.GYRO), [InputActionDef.PROXY_GYRO_Y, InputActionDef.PROXY_GYRO_Z])
+	assert_eq(InputActionDef.joypad_motion_to_joy_axes(InputActionDef.JoypadMotion.GYRO), [InputActionDef.PROXY_GYRO_X, InputActionDef.PROXY_GYRO_Z])
 
 
 
