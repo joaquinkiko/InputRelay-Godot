@@ -37,11 +37,6 @@ func _init() -> void:
 	if ProjectSettings.get_setting("InputRelay/auto_save_load_remaps", true):
 		load_remaps()
 
-func _notification(what: int) -> void:
-	# Auto-save remaps before deleting
-	if what == NOTIFICATION_PREDELETE and ProjectSettings.get_setting("InputRelay/auto_save_load_remaps", true):
-		save_remaps()
-
 ## Loads a [member remap_file] from [member remap_file_path]. Fails if path is empty.
 func load_remaps() -> void:
 	if remap_file_path.is_empty():
@@ -53,6 +48,9 @@ func load_remaps() -> void:
 func save_remaps() -> void:
 	if remap_file_path.is_empty():
 		push_error("No remap_file_path defined, unable to save")
+		return
+	if remap_file == null:
+		push_error("Missing remap_file to save")
 		return
 	remap_file.save(remap_file_path)
 

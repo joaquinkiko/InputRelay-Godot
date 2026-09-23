@@ -109,6 +109,10 @@ func _ready() -> void:
 	# Load translations
 	remapper.refresh_translations()
 
+func _exit_tree() -> void:
+	if remapper != null: # Autosave remaps
+		remapper.save_remaps()
+
 func _input(event: InputEvent) -> void:
 	# Check device assignment
 	if player_awaiting_assignment != 0:
