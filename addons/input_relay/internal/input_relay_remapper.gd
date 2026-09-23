@@ -140,7 +140,7 @@ func _load_action_set_translation(set_key: StringName, layer_key: StringName, ac
 		_get_translation(base_locale).add_message(&"ACTION_%s"%action_key.to_upper(), action_key.capitalize())
 		for locale in loaded_locales:
 			if action_set.localizations.has(locale):
-				_get_translation(locale).add_message(&"ACTION_%s"%action_key.to_upper(), def.localizations[locale])
+				_get_translation(locale).add_message(&"ACTION_%s"%action_key.to_upper(), def.localizations.get(locale, ""))
 			else:
 				_get_translation(locale).add_message(&"ACTION_%s"%action_key.to_upper(), action_key.capitalize())
 		# Input buttons should be translation agnostic
