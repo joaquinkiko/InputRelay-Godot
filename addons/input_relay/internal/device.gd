@@ -68,14 +68,14 @@ func _init(device_id: int, device_name: String, settings: InputRelaySettings = n
 		product_id = int(info.get("product_id", 0))
 	# Vendor takes priority on determining Glyph, otherwise fallback to name
 	var lname := device_name.to_lower()
-	if vendor_id == Vendors.MICROSOFT || "xbox" in lname || "xinput" in lname:
+	if device_id == InputRelay.KEYBOARD_INDEX:
+		glyph_map = settings.mouse_keyboard_glyph_map
+	elif vendor_id == Vendors.MICROSOFT || "xbox" in lname || "xinput" in lname:
 		glyph_map = settings.xbox_glyph_map
 	elif vendor_id == Vendors.SONY || "playstation" in lname || "dualshock" in lname || "dualsense" in lname:
 		glyph_map = settings.dualshock_glyph_map
 	elif vendor_id == Vendors.NINTENDO || "nintendo" in lname || "switch" in lname:
 		glyph_map = settings.nintendo_pro_glyph_map
-	elif device_id == InputRelay.KEYBOARD_INDEX:
-		glyph_map = settings.mouse_keyboard_glyph_map
 	else:
 		glyph_map = settings.generic_glyph_map
 
