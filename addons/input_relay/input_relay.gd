@@ -318,6 +318,7 @@ func assign_device(device_id: int, player_number: int) -> void:
 	var player := get_player(player_number)
 	if device == null || player == null:
 		push_error("Passed invalid player or device number for device assignment")
+		return
 	if device.player != null:
 		unassign_device(device_id, device.player.number)
 	player.devices.append(device)
@@ -335,6 +336,7 @@ func unassign_device(device_id: int, player_number: int) -> void:
 	var player := get_player(player_number)
 	if device == null || player == null:
 		push_error("Passed invalid player or device number for device unassignment")
+		return
 	if device.player == player:
 		device.player = null
 	if player.devices.has(device):
