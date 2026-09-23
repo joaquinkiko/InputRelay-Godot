@@ -54,6 +54,8 @@ func before_each() -> void:
 	
 	mapper = InputRelayMapper.new()
 	mapper.remap_file = ConfigFile.new()
+	InputMap.add_action("test_proxy_action")
+	InputMap.action_set_deadzone("test_proxy_action", 0.2)
 
 func after_each() -> void:
 	for action_name in mapper._managed_actions:
@@ -66,6 +68,8 @@ func after_each() -> void:
 	ProjectSettings.set_setting("InputRelay/auto_save_load_remaps", saved_auto_save)
 	if FileAccess.file_exists(REMAP_PATH):
 		DirAccess.remove_absolute(REMAP_PATH)
+	InputMap.erase_action("test_proxy_action")
+	Input.action_release("test_proxy_action")
 
 func _build_action_set() -> InputActionSet:
 	var action_set := InputActionSet.new()
@@ -572,3 +576,56 @@ func test_clear_steam_state_removes_only_that_handle() -> void:
 	mapper.clear_steam_digital_state_for_handle(7)
 	assert_false(mapper._steam_previous_digital.has("test_jump1"))
 	assert_true(mapper._steam_previous_digital.has("test_jump2"))
+
+
+
+func test_value_above_deadzone_presses_action() -> void:
+	mapper._proxy_axis_bindings = [{
+		"axis": InputActionDef.PROXY_MOUSE_X, "device_id": InputRelay.KEYBOARD_INDEX,
+		"action": &"test_proxy_action", "sign": 1.0,
+	}]
+	mapper.dispatch_proxy_axis(InputActionDef.PROXY_MOUSE_X, InputRelay.KEYBOARD_INDEX, 0.6)
+	assert_true(Input.is_action_pressed("test_proxy_action"))
+	assert_almost_eq(Input.get_action_strength("test_proxy_action"), 0.5, 0.001)
+
+func test_value_below_deadzone_releases_action() -> void:
+	mapper._proxy_axis_bindings = [{
+		"axis": InputActionDef.PROXY_MOUSE_X, "device_id": InputRelay.KEYBOARD_INDEX,
+		"action": &"test_proxy_action", "sign": 1.0,
+	}]
+	Input.action_press("test_proxy_action", 1.0)
+	mapper.dispatch_proxy_axis(InputActionDef.PROXY_MOUSE_X, InputRelay.KEYBOARD_INDEX, 0.1)
+	assert_false(Input.is_action_pressed("test_proxy_action"))
+
+func test_negative_sign_flips_value() -> void:
+	mapper._proxy_axis_bindings = [{
+		"axis": InputActionDef.PROXY_MOUSE_X, "device_id": InputRelay.KEYBOARD_INDEX,
+		"action": &"test_proxy_action", "sign": -1.0,
+	}]
+	mapper.dispatch_proxy_axis(InputActionDef.PROXY_MOUSE_X, InputRelay.KEYBOARD_INDEX, -0.6)
+	assert_true(Input.is_action_pressed("test_proxy_action"))
+	assert_almost_eq(Input.get_action_strength("test_proxy_action"), 0.5, 0.001)
+
+func test_mismatched_axis_is_ignored() -> void:
+	mapper._proxy_axis_bindings = [{
+		"axis": InputActionDef.PROXY_GYRO_X, "device_id": InputRelay.KEYBOARD_INDEX,
+		"action": &"test_proxy_action", "sign": 1.0,
+	}]
+	mapper.dispatch_proxy_axis(InputActionDef.PROXY_MOUSE_X, InputRelay.KEYBOARD_INDEX, 1.0)
+	assert_false(Input.is_action_pressed("test_proxy_action"))
+
+func test_mismatched_device_id_is_ignored() -> void:
+	mapper._proxy_axis_bindings = [{
+		"axis": InputActionDef.PROXY_MOUSE_X, "device_id": InputRelay.KEYBOARD_INDEX,
+		"action": &"test_proxy_action", "sign": 1.0,
+	}]
+	mapper.dispatch_proxy_axis(InputActionDef.PROXY_MOUSE_X, 5, 1.0)
+	assert_false(Input.is_action_pressed("test_proxy_action"))
+
+func test_value_is_clamped_before_deadzone_math() -> void:
+	mapper._proxy_axis_bindings = [{
+		"axis": InputActionDef.PROXY_MOUSE_X, "device_id": InputRelay.KEYBOARD_INDEX,
+		"action": &"test_proxy_action", "sign": 1.0,
+	}]
+	mapper.dispatch_proxy_axis(InputActionDef.PROXY_MOUSE_X, InputRelay.KEYBOARD_INDEX, 5.0) # Way over 1.0
+	assert_almost_eq(Input.get_action_strength("test_proxy_action"), 1.0, 0.001)
