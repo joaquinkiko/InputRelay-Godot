@@ -108,7 +108,8 @@ func refresh_translations() -> void:
 	for set_key in InputRelay.settings.action_sets:
 		var action_set: InputActionSet = InputRelay.settings.action_sets.get(set_key)
 		if action_set == null: continue
-		_get_translation(base_locale).add_message(&"SET_%s"%set_key.to_upper(), set_key.capitalize())
+		if !action_set.localizations.has(base_locale):
+			_get_translation(base_locale).add_message(&"SET_%s"%set_key.to_upper(), set_key.capitalize())
 		for locale in loaded_locales:
 			if action_set.localizations.has(locale):
 				_get_translation(locale).add_message(&"SET_%s"%set_key.to_upper(), action_set.localizations[locale])
@@ -118,9 +119,10 @@ func refresh_translations() -> void:
 		for layer_key in action_set.layers:
 			var action_layer: InputActionSet = action_set.layers.get(layer_key)
 			if action_layer == null: continue
-			_get_translation(base_locale).add_message(&"LAYER_%s"%layer_key.to_upper(), layer_key.capitalize())
+			if !action_layer.localizations.has(base_locale):
+				_get_translation(base_locale).add_message(&"LAYER_%s"%layer_key.to_upper(), layer_key.capitalize())
 			for locale in loaded_locales:
-				if action_set.localizations.has(locale):
+				if action_layer.localizations.has(locale):
 					_get_translation(locale).add_message(&"LAYER_%s"%layer_key.to_upper(), action_set.localizations[locale])
 				else:
 					_get_translation(locale).add_message(&"SET_%s"%layer_key.to_upper(), layer_key.capitalize())
@@ -137,9 +139,10 @@ func _load_action_set_translation(set_key: StringName, layer_key: StringName, ac
 		# Key the name of the action
 		var def := action_set.actions[action_key]
 		if def == null: continue
-		_get_translation(base_locale).add_message(&"ACTION_%s"%action_key.to_upper(), action_key.capitalize())
+		if !def.localizations.has(base_locale):
+			_get_translation(base_locale).add_message(&"ACTION_%s"%action_key.to_upper(), action_key.capitalize())
 		for locale in loaded_locales:
-			if action_set.localizations.has(locale):
+			if def.localizations.has(locale):
 				_get_translation(locale).add_message(&"ACTION_%s"%action_key.to_upper(), def.localizations.get(locale, ""))
 			else:
 				_get_translation(locale).add_message(&"ACTION_%s"%action_key.to_upper(), action_key.capitalize())
