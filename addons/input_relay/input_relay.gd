@@ -1069,3 +1069,17 @@ func _steam_get_action_string(player: InputRelayPlayer, device: InputRelayDevice
 	if origin == 0:
 		return ""
 	return Engine.get_singleton("Steam").getStringForActionOrigin(origin)
+
+## Returns player's active action set key.
+func get_active_set(player_number: int) -> StringName:
+	var player := get_player(player_number)
+	if player == null:
+		return &""
+	return player.current_action_set
+
+## Returns player's topmost active layer key, or "" if no layers active.
+func get_active_layer(player_number: int) -> StringName:
+	var player := get_player(player_number)
+	if player == null || player.current_action_layers.is_empty():
+		return &""
+	return player.current_action_layers.back()

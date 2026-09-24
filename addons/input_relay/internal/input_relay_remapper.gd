@@ -121,12 +121,12 @@ func refresh_translations() -> void:
 			var action_layer: InputActionSet = action_set.layers.get(layer_key)
 			if action_layer == null: continue
 			if !action_layer.localizations.has(base_locale):
-				_get_translation(base_locale).add_message(&"LAYER_%s"%layer_key.to_upper(), layer_key.capitalize())
+				_get_translation(base_locale).add_message(&"LAYER_%s"%_key_prefix(set_key, layer_key), layer_key.capitalize())
 			for locale in loaded_locales:
 				if action_layer.localizations.has(locale):
-					_get_translation(locale).add_message(&"LAYER_%s"%layer_key.to_upper(), action_set.localizations[locale])
+					_get_translation(locale).add_message(&"LAYER_%s"%_key_prefix(set_key, layer_key), layer_key.capitalize())
 				else:
-					_get_translation(locale).add_message(&"SET_%s"%layer_key.to_upper(), layer_key.capitalize())
+					_get_translation(locale).add_message(&"LAYER_%s"%_key_prefix(set_key, layer_key), layer_key.capitalize())
 			_load_action_set_translation(set_key, layer_key, action_layer)
 	# Load new translations
 	for translation in translations.values():
@@ -136,39 +136,74 @@ func _load_action_set_translation(set_key: StringName, layer_key: StringName, ac
 	var base_locale: String = TranslationServer.get_locale()
 	var loaded_locales: PackedStringArray = TranslationServer.get_loaded_locales()
 	if !loaded_locales.has(base_locale): loaded_locales.append(base_locale)
+	var prefix := _key_prefix(set_key, layer_key)
 	# Load action translations
 	for action_key in action_set.actions:
 		# Key the name of the action
 		var def := action_set.actions[action_key]
 		if def == null: continue
+		var action_translation_key := "ACTION_%s_%s" % [prefix, action_key.to_upper()]
 		if !def.localizations.has(base_locale):
-			_get_translation(base_locale).add_message(&"ACTION_%s"%action_key.to_upper(), action_key.capitalize())
+			_get_translation(base_locale).add_message(action_translation_key, action_key.capitalize())
 		for locale in loaded_locales:
 			if def.localizations.has(locale):
-				_get_translation(locale).add_message(&"ACTION_%s"%action_key.to_upper(), def.localizations.get(locale, ""))
+				_get_translation(locale).add_message(action_translation_key, def.localizations.get(locale, ""))
 			else:
-				_get_translation(locale).add_message(&"ACTION_%s"%action_key.to_upper(), action_key.capitalize())
+				_get_translation(locale).add_message(action_translation_key, action_key.capitalize())
+		# Find which players currently have this set/layer active, if any
+		var active_players: Array[int] = []
+		for player in range(1, InputRelay.MAX_PLAYERS + 1):
+			if InputRelay.get_active_set(player) == set_key and InputRelay.get_active_layer(player) == layer_key:
+				active_players.append(player)
 		# Input buttons should be translation agnostic
 		for locale in loaded_locales:
 			if def is InputActionDefDirectional:
 				for direction in [&"UP", &"DOWN", &"LEFT", &"RIGHT"]:
-					for n in range(1, InputRelay.MAX_PLAYERS + 1):
-						var display := _get_directional_input_string(set_key, layer_key, action_key, direction.to_lower(), n)
-						_get_translation(locale).add_message(&"INPUT_%s_%s%s"%[action_key.to_upper(), direction, n], display)
-						if n == 1:
-							_get_translation(locale).add_message(&"INPUT_%s_%s"%[action_key.to_upper(), direction], display)
+					for player in range(1, InputRelay.MAX_PLAYERS + 1):
+						var display := _get_directional_input_string(set_key, layer_key, action_key, direction.to_lower(), player)
+						_get_translation(locale).add_message("INPUT_%s_%s%s%s" % [prefix, action_key.to_upper(), direction, player], display)
+						if player in active_players:
+							_get_translation(locale).add_message("INPUT_%s_%s%s" % [action_key.to_upper(), direction, player], display)
+							if player == 1:
+								_get_translation(locale).add_message("INPUT_%s_%s" % [action_key.to_upper(), direction], display)
 				if def is InputActionDefStickPad:
-					for n in range(1, InputRelay.MAX_PLAYERS + 1):
-						var display := _get_directional_input_string(set_key, layer_key, action_key, "", n)
-						_get_translation(locale).add_message(&"INPUT_%s%s"%[action_key.to_upper(), n], display)
-						if n == 1:
-							_get_translation(locale).add_message(&"INPUT_%s"%[action_key.to_upper()], display)
+					for player in range(1, InputRelay.MAX_PLAYERS + 1):
+						var display := _get_directional_input_string(set_key, layer_key, action_key, "", player)
+						_get_translation(locale).add_message("INPUT_%s_%s%s" % [prefix, action_key.to_upper(), player], display)
+						if player in active_players:
+							_get_translation(locale).add_message("INPUT_%s%s" % [action_key.to_upper(), player], display)
+							if player == 1:
+								_get_translation(locale).add_message("INPUT_%s" % action_key.to_upper(), display)
 			else:
-				for n in range(1, InputRelay.MAX_PLAYERS + 1):
-					var display := _get_input_string(set_key, layer_key, action_key, n)
-					_get_translation(locale).add_message(&"INPUT_%s%s"%[action_key.to_upper(), n], display)
-					if n == 1:
-						_get_translation(locale).add_message(&"INPUT_%s"%[action_key.to_upper()], display)
+				for player in range(1, InputRelay.MAX_PLAYERS + 1):
+					var display := _get_input_string(set_key, layer_key, action_key, player)
+					_get_translation(locale).add_message("INPUT_%s_%s%s" % [prefix, action_key.to_upper(), player], display)
+					if player in active_players:
+						_get_translation(locale).add_message("INPUT_%s%s" % [action_key.to_upper(), player], display)
+						if player == 1:
+							_get_translation(locale).add_message("INPUT_%s" % action_key.to_upper(), display)
+	# Plain ACTION_[action] keys, keyed off whichever player's active set/layer we're processing
+	for action_key in action_set.actions:
+		var def := action_set.actions[action_key]
+		if def == null: continue
+		var is_active := false
+		for player in range(1, InputRelay.MAX_PLAYERS + 1):
+			if InputRelay.get_active_set(player) == set_key and InputRelay.get_active_layer(player) == layer_key:
+				is_active = true
+				break
+		if !is_active: continue
+		if !def.localizations.has(base_locale):
+			_get_translation(base_locale).add_message("ACTION_%s" % action_key.to_upper(), action_key.capitalize())
+		for locale in loaded_locales:
+			if def.localizations.has(locale):
+				_get_translation(locale).add_message("ACTION_%s" % action_key.to_upper(), def.localizations.get(locale, ""))
+			else:
+				_get_translation(locale).add_message("ACTION_%s" % action_key.to_upper(), action_key.capitalize())
+
+## Builds SET_LAYER prefix, omitting layer segment when absent
+func _key_prefix(set_key: StringName, layer_key: StringName) -> String:
+	if layer_key == &"": return set_key.to_upper()
+	return "%s_%s" % [set_key.to_upper(), layer_key.to_upper()]
 
 ## Resolves display string for a non-directional action, based on player's last used device
 func _get_input_string(set_key: StringName, layer_key: StringName, action_key: StringName, player_number: int) -> String:
