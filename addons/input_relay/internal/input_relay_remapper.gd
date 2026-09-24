@@ -105,6 +105,7 @@ func refresh_translations() -> void:
 	# Translate sets
 	var base_locale: String = TranslationServer.get_locale()
 	var loaded_locales: PackedStringArray = TranslationServer.get_loaded_locales()
+	if !loaded_locales.has(base_locale): loaded_locales.append(base_locale)
 	for set_key in InputRelay.settings.action_sets:
 		var action_set: InputActionSet = InputRelay.settings.action_sets.get(set_key)
 		if action_set == null: continue
@@ -134,6 +135,7 @@ func refresh_translations() -> void:
 func _load_action_set_translation(set_key: StringName, layer_key: StringName, action_set: InputActionSet) -> void:
 	var base_locale: String = TranslationServer.get_locale()
 	var loaded_locales: PackedStringArray = TranslationServer.get_loaded_locales()
+	if !loaded_locales.has(base_locale): loaded_locales.append(base_locale)
 	# Load action translations
 	for action_key in action_set.actions:
 		# Key the name of the action
