@@ -194,3 +194,55 @@ func test_set_localization_does_not_break_input_strings() -> void:
 	settings.action_sets[SET_KEY].localizations[&"en"] = &"Gameplay"
 	InputRelay.remapper.refresh_translations()
 	assert_eq(tr("INPUT_TEST_JUMP"), "Space")
+
+func test_inactive_set_sharing_action_name_does_not_leak() -> void:
+	var other_jump := InputActionDefDigital.new()
+	other_jump.mouse_key_button = InputActionDef.MouseKeyButton.G
+	var other_set := InputActionSet.new()
+	other_set.actions[&"test_jump"] = other_jump
+	settings.action_sets[&"other"] = other_set
+	InputRelay.remapper.refresh_translations()
+	assert_eq(_spawn(ButtonRemapper.new()).text, "Space")
+
+func test_switching_active_set_updates_display() -> void:
+	var other_jump := InputActionDefDigital.new()
+	other_jump.mouse_key_button = InputActionDef.MouseKeyButton.G
+	var other_set := InputActionSet.new()
+	other_set.actions[&"test_jump"] = other_jump
+	settings.action_sets[&"other"] = other_set
+	player_one.current_action_set = &"other"
+	InputRelay.remapper.refresh_translations()
+	assert_eq(_spawn(ButtonRemapper.new()).text, "G")
+
+func test_players_on_different_sets_stay_independent() -> void:
+	var other_jump := InputActionDefDigital.new()
+	other_jump.mouse_key_button = InputActionDef.MouseKeyButton.G
+	other_jump.joy_button = InputActionDef.JoypadButton.NORTH
+	var other_set := InputActionSet.new()
+	other_set.actions[&"test_jump"] = other_jump
+	settings.action_sets[&"other"] = other_set
+	InputRelay.get_player(2).current_action_set = &"other"
+	InputRelay.remapper.refresh_translations()
+	assert_eq(_spawn(ButtonRemapper.new(), &"test_jump", InputGlyphRect.Direction.NONE, 1).text, "Space")
+	assert_eq(_spawn(ButtonRemapper.new(), &"test_jump", InputGlyphRect.Direction.NONE, 2).text, "North Button")
+
+func test_shared_layer_name_across_sets_does_not_collide() -> void:
+	var other_confirm := InputActionDefDigital.new()
+	other_confirm.mouse_key_button = InputActionDef.MouseKeyButton.G
+	var other_layer := InputActionSet.new()
+	other_layer.actions[&"test_confirm"] = other_confirm
+	var other_set := InputActionSet.new()
+	other_set.layers[&"menu"] = other_layer
+	settings.action_sets[&"other"] = other_set
+	player_one.current_action_layers.assign([&"menu"])
+	InputRelay.remapper.refresh_translations()
+	assert_eq(_spawn(ButtonRemapper.new(), &"test_confirm").text, "Enter")
+
+func test_action_with_no_active_player_leaves_plain_key_untranslated() -> void:
+	var orphan := InputActionDefDigital.new()
+	orphan.mouse_key_button = InputActionDef.MouseKeyButton.G
+	var orphan_set := InputActionSet.new()
+	orphan_set.actions[&"test_orphan"] = orphan
+	settings.action_sets[&"orphan"] = orphan_set
+	InputRelay.remapper.refresh_translations()
+	assert_eq(tr("ACTION_TEST_ORPHAN"), "ACTION_TEST_ORPHAN")
