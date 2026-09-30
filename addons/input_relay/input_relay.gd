@@ -186,6 +186,10 @@ func _process(delta: float) -> void:
 		_mouse_axis = _mouse_axis.lerp(Vector2.ZERO, 1.0 - exp(-_MOTION_DECAY_RATE * delta))
 		remapper.dispatch_proxy_axis(InputActionDef.PROXY_MOUSE_X, KEYBOARD_INDEX, _smoothed_mouse_axis.x)
 		remapper.dispatch_proxy_axis(InputActionDef.PROXY_MOUSE_Y, KEYBOARD_INDEX, _smoothed_mouse_axis.y)
+	elif _smoothed_mouse_axis != Vector2.ZERO:
+		_smoothed_mouse_axis = Vector2.ZERO
+		remapper.dispatch_proxy_axis(InputActionDef.PROXY_MOUSE_X, KEYBOARD_INDEX, 0.0)
+		remapper.dispatch_proxy_axis(InputActionDef.PROXY_MOUSE_Y, KEYBOARD_INDEX, 0.0)
 	# Process Gyro
 	for device in devices:
 		if device.supports_motion() && device.player:
