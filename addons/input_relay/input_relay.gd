@@ -71,7 +71,7 @@ var _steam_glyph_cache: Dictionary[int, Texture2D] = {}
 
 func _ready() -> void:
 	# Ensure input gets to us first
-	process_priority = 0x80000000 # 32-bit floor, so we always process first
+	process_priority = -2147483648
 	# Get settings
 	var settings_path = ProjectSettings.get_setting(
 		"InputRelay/settings_resource_path",
