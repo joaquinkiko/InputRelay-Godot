@@ -95,6 +95,9 @@ func refresh_mappings() -> void:
 		for action_key in actions:
 			_map_action(player.current_action_set, action_layers[action_key], action_key, actions[action_key], player)
 	refreshed_mappings.emit()
+	for action_name in InputRelay._raw_strengths.keys():
+		if not mapped_action_defs.has(action_name):
+			InputRelay._raw_strengths.erase(action_name)
 
 ## Refreshes action translations
 func refresh_translations() -> void:
@@ -933,6 +936,7 @@ func dispatch_proxy_axis(axis: int, device_id: int, value: float) -> void:
 		var strength := 0.0
 		if signed_value > deadzone:
 			strength = (signed_value - deadzone) / (1.0 - deadzone)
+		InputRelay._raw_strengths[binding["action"]] = strength
 		if strength > 0.0:
 			Input.action_press(binding["action"], strength)
 		else:

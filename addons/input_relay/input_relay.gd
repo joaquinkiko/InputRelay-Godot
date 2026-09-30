@@ -61,6 +61,7 @@ var _gyro_axis: Dictionary[int, Vector3]
 var _smoothed_gyro_axis: Dictionary[int, Vector3]
 
 var _toggled_actions: Array[StringName]
+var _raw_strengths: Dictionary[StringName, float]
 
 var _steam_handle_to_device_id: Dictionary[int, int] = {}
 var _next_steam_device_id := STEAM_DEVICE_ID_OFFSET
@@ -146,7 +147,13 @@ func _input(event: InputEvent) -> void:
 	# Poll mouse
 	if event is InputEventMouseMotion:
 		_mouse_axis += event.screen_relative * _MOUSE_SENSITIVITY
-	
+	# Record input strength
+	if !(event is InputEventAction || event is InputEventMouseMotion):
+		for action_name in remapper.mapped_action_defs:
+			if remapper.mapped_action_defs[action_name] is InputActionDefDirectional \
+			&& event.is_action(action_name):
+				_raw_strengths[action_name] = event.get_action_strength(action_name)
+		_apply_native_directionals()
 	if event is InputEventAction:
 		var action_def := remapper.mapped_action_defs.get(event.action, null)
 		if action_def is InputActionDefDirectional:
@@ -194,6 +201,45 @@ func _process(delta: float) -> void:
 				InputActionDef.PROXY_GYRO_Y, device.index, _smoothed_gyro_axis[device.player.number].y)
 			remapper.dispatch_proxy_axis(
 				InputActionDef.PROXY_GYRO_Z, device.index, _smoothed_gyro_axis[device.player.number].z)
+	# Process sensitivity
+	_apply_native_directionals()
+	
+
+func _apply_native_directionals() -> void:
+	for action_name in remapper.mapped_action_defs:
+		var action_def := remapper.mapped_action_defs[action_name]
+		if !(action_def is InputActionDefDirectional):
+			continue
+		var parts := _get_stick_action_parts(action_name)
+		if parts.is_empty():
+			continue
+		var base_name: String = parts[0]
+		var suffix: String = parts[1]
+		# Process each action group once, via its up direction
+		if action_name != StringName(base_name + "_up" + suffix):
+			continue
+		var up_name := StringName(base_name + "_up" + suffix)
+		var down_name := StringName(base_name + "_down" + suffix)
+		var left_name := StringName(base_name + "_left" + suffix)
+		var right_name := StringName(base_name + "_right" + suffix)
+		var has_native := false
+		for direction_name in [up_name, down_name, left_name, right_name]:
+			if _raw_strengths.has(direction_name):
+				has_native = true
+		if not has_native:
+			continue
+		var direction := Vector2(
+			_raw_strengths.get(right_name, 0.0) - _raw_strengths.get(left_name, 0.0),
+			_raw_strengths.get(down_name, 0.0) - _raw_strengths.get(up_name, 0.0))
+		if direction.length() > 1.0:
+			direction = direction.normalized()
+		if action_def is InputActionDefStickPadVelocity:
+			direction *= remapper._action_sensitivities.get(
+				StringName(base_name + suffix), action_def.sensitivity)
+		_proxy_set_action_strength(right_name, maxf(direction.x, 0.0))
+		_proxy_set_action_strength(left_name, maxf(-direction.x, 0.0))
+		_proxy_set_action_strength(down_name, maxf(direction.y, 0.0))
+		_proxy_set_action_strength(up_name, maxf(-direction.y, 0.0))
 
 ## Handles toggling for [InputActionDefDigital] actions
 func _handle_toggle_action(event: InputEventAction, action_def: InputActionDefDigital) -> void:
