@@ -100,7 +100,7 @@ func _ready() -> void:
 			_register_device(KEYBOARD_INDEX, "Keyboard & Mouse")
 		_:
 			pass
-	if _using_steam_input():
+	if Engine.has_singleton("Steam"):
 		_refresh_steam_devices()
 	# Set player action sets to defaults
 	for n in players.size():
