@@ -154,6 +154,19 @@ func _input(event: InputEvent) -> void:
 		elif action_def is InputActionDefDigital \
 		and remapper._action_is_toggle.get(event.action, action_def.is_toggle):
 			_handle_toggle_action(event, action_def)
+	# Process native toggle
+	if not (event is InputEventAction) and not event.is_echo():
+		for action_name: StringName in remapper._action_is_toggle:
+			if remapper._action_is_toggle[action_name] and event.is_action(action_name):
+				if event.is_pressed():
+					if _toggled_actions.has(action_name):
+						_toggled_actions.erase(action_name)
+					else:
+						_toggled_actions.append(action_name)
+					if _toggled_actions.has(action_name):
+						Input.action_press(action_name)
+					else:
+						Input.action_release(action_name)
 
 func _process(delta: float) -> void:
 	# Steam Input handling
