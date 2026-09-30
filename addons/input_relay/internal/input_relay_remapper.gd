@@ -98,6 +98,7 @@ func refresh_mappings() -> void:
 	for action_name in InputRelay._raw_strengths.keys():
 		if not mapped_action_defs.has(action_name):
 			InputRelay._raw_strengths.erase(action_name)
+	InputRelay._raw_strengths.clear()
 
 ## Refreshes action translations
 func refresh_translations() -> void:
