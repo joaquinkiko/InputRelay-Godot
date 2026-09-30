@@ -472,6 +472,7 @@ func _remap_key(set_key: StringName, layer: StringName, action: StringName) -> S
 
 func _remap_write(remap_type: String, set_key: StringName, layer: StringName, action: StringName, player: int, value: Variant) -> void:
 	remap_file.set_value(_remap_section(player, remap_type), _remap_key(set_key, layer, action), value)
+	save_remaps()
 
 func _remap_erase(remap_type: String, set_key: StringName, layer: StringName, action: StringName, player: int) -> void:
 	remap_file.erase_section_key(_remap_section(player, remap_type), _remap_key(set_key, layer, action))
