@@ -30,6 +30,7 @@ class_name DeviceGlyphMapGamepad extends DeviceGlyphMap
 @export var dpad_right_string: StringName = "D-Pad Right"
 
 @export_group("Sticks")
+@export var left_stick_press_glyph: Texture2D
 @export var left_stick_press_string: StringName = "Left Stick Click"
 @export var right_stick_press_glyph: Texture2D
 @export var right_stick_press_string: StringName = "Right Stick Click"

@@ -57,8 +57,8 @@ var player_awaiting_assignment: int = 0
 
 var _mouse_axis: Vector2 = Vector2.ZERO
 var _smoothed_mouse_axis: Vector2 = Vector2.ZERO
-var _gyro_axis: Vector3 = Vector3.ZERO
-var _smoothed_gyro_axis: Vector3 = Vector3.ZERO
+var _gyro_axis: Dictionary[int, Vector3]
+var _smoothed_gyro_axis: Dictionary[int, Vector3]
 
 var _toggled_actions: Array[StringName]
 
@@ -88,6 +88,9 @@ func _ready() -> void:
 	for n in players.size():
 		# Assign number starting at 1
 		players[n] = InputRelayPlayer.new(n + 1)
+		# Init gyro data
+		_gyro_axis[n + 1] = Vector3.ZERO
+		_smoothed_gyro_axis[n + 1] = Vector3.ZERO
 	# Setup remapper
 	remapper = InputRelayMapper.new()
 	remapper.refreshed_mappings.connect(_refreshed_mappings)
@@ -166,12 +169,18 @@ func _process(delta: float) -> void:
 	# Process Gyro
 	for device in devices:
 		if device.supports_motion() && device.player:
-			_gyro_axis += device.get_gyro() * _GYRO_SENSITIVITY * delta
-			_smoothed_gyro_axis = _smoothed_gyro_axis.lerp(_gyro_axis, 1.0 - exp(-_MOTION_SMOOTHING_SPEED * delta))
-			_gyro_axis = _gyro_axis.lerp(Vector3.ZERO, 1.0 - exp(-_MOTION_DECAY_RATE * delta))
-			remapper.dispatch_proxy_axis(InputActionDef.PROXY_GYRO_X, device.index, _smoothed_gyro_axis.x)
-			remapper.dispatch_proxy_axis(InputActionDef.PROXY_GYRO_Y, device.index, _smoothed_gyro_axis.y)
-			remapper.dispatch_proxy_axis(InputActionDef.PROXY_GYRO_Z, device.index, _smoothed_gyro_axis.z)
+			_gyro_axis[device.player.number] += device.get_gyro() * _GYRO_SENSITIVITY * delta
+			_smoothed_gyro_axis[device.player.number] = _smoothed_gyro_axis[device.player.number].lerp(
+				_gyro_axis[device.player.number],
+				1.0 - exp(-_MOTION_SMOOTHING_SPEED * delta)
+				)
+			_gyro_axis[device.player.number] = _gyro_axis[device.player.number].lerp(Vector3.ZERO, 1.0 - exp(-_MOTION_DECAY_RATE * delta))
+			remapper.dispatch_proxy_axis(
+				InputActionDef.PROXY_GYRO_X, device.index, _smoothed_gyro_axis[device.player.number].x)
+			remapper.dispatch_proxy_axis(
+				InputActionDef.PROXY_GYRO_Y, device.index, _smoothed_gyro_axis[device.player.number].y)
+			remapper.dispatch_proxy_axis(
+				InputActionDef.PROXY_GYRO_Z, device.index, _smoothed_gyro_axis[device.player.number].z)
 
 ## Handles toggling for [InputActionDefDigital] actions
 func _handle_toggle_action(event: InputEventAction, action_def: InputActionDefDigital) -> void:
@@ -280,6 +289,8 @@ func _register_device(device_id: int, device_name: String = "") -> void:
 
 func _unregister_device(device_id: int) -> void:
 	var device := get_device(device_id)
+	if device == null:
+		return
 	var player := device.player
 	if player != null:
 		unassign_device(device_id, device.player.number)
