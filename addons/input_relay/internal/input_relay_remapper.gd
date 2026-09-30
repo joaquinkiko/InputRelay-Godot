@@ -478,10 +478,10 @@ func _remap_erase(remap_type: String, set_key: StringName, layer: StringName, ac
 
 ## Returns the stored value for a remap key, or default if unset
 func _remap_read(remap_type: String, set_key: StringName, layer: StringName, action: StringName, player: int, default: Variant):
-	var section := _remap_section(player, remap_type)
 	var key := _remap_key(set_key, layer, action)
-	if remap_file.has_section_key(section, key):
-		return remap_file.get_value(section, key)
+	for section in [_remap_section(player, remap_type), _remap_section(0, remap_type)]:
+		if remap_file.has_section_key(section, key):
+			return remap_file.get_value(section, key)
 	return default
 
 ## Non-directional key/mouse remap setter
