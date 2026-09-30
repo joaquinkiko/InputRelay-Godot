@@ -81,6 +81,7 @@ func _ready() -> void:
 	if settings == null:
 		settings = InputRelaySettings.new()
 		push_error("No InputRelaySettings provided!")
+	settings.sanitize_keys()
 	# Setup players
 	MAX_PLAYERS = ProjectSettings.get_setting("InputRelay/max_players", 4)
 	players.resize(MAX_PLAYERS)
