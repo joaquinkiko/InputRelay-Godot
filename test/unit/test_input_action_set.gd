@@ -63,7 +63,7 @@ func test_layer_names_are_sanitized() -> void:
 	action_set.sanitize_keys()
 	assert_true(action_set.layers.has(&"menu overlay"))
 	assert_same(action_set.layers[&"menu overlay"], layer)
-	assert_push_error_count(1)
+	assert_push_error_count(2)
 
 func test_layer_actions_are_sanitized_recursively() -> void:
 	var action_set := InputActionSet.new()

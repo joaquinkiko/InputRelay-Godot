@@ -124,7 +124,7 @@ func refresh_translations() -> void:
 				_get_translation(base_locale).add_message(&"LAYER_%s"%_key_prefix(set_key, layer_key), layer_key.capitalize())
 			for locale in loaded_locales:
 				if action_layer.localizations.has(locale):
-					_get_translation(locale).add_message(&"LAYER_%s"%_key_prefix(set_key, layer_key), layer_key.capitalize())
+					_get_translation(locale).add_message(&"LAYER_%s"%_key_prefix(set_key, layer_key), action_set.layers[layer_key].localizations[locale])
 				else:
 					_get_translation(locale).add_message(&"LAYER_%s"%_key_prefix(set_key, layer_key), layer_key.capitalize())
 			_load_action_set_translation(set_key, layer_key, action_layer)
@@ -374,10 +374,11 @@ func _map_dpad_direction(set_key: StringName, layer_key: StringName, action_name
 	
 	for suffix in _action_suffixes(player):
 		var full_name := StringName("%s_%s%s" % [action_name, direction, suffix])
-		if InputMap.has_action(full_name):
-			InputMap.erase_action(full_name) # Clear out before adding
-		InputMap.add_action(full_name)
-		_managed_actions.append(full_name)
+		if not _managed_actions.has(full_name):
+			if InputMap.has_action(full_name):
+				InputMap.erase_action(full_name) # Clear out before adding
+			InputMap.add_action(full_name)
+			_managed_actions.append(full_name)
 		mapped_action_defs[full_name] = dpad
 		for device in player.devices:
 			if device.is_steam_managed():
@@ -556,20 +557,20 @@ func remap_directional_joy_motion(set_key: StringName, layer: StringName, action
 	if not InputActionDef.is_valid_joypad_motion(new_value):
 		push_error("Invalid JoypadMotion value: %d" % new_value)
 		return
-	_remap_write("Joy", set_key, layer, action, player, InputActionDef.joypad_motion_to_string(new_value))
+	_remap_write("JoyMotion", set_key, layer, action, player, InputActionDef.joypad_motion_to_string(new_value))
 
 ## Stick pad's joy motion remap eraser
 func clear_remap_directional_joy_motion(set_key: StringName, layer: StringName, action: StringName, player: int) -> void:
 	if _validate_remap_target(set_key, layer, action, player) == null:
 		return
-	_remap_erase("Joy", set_key, layer, action, player)
+	_remap_erase("JoyMotion", set_key, layer, action, player)
 
 ## Stick pad's joy motion remap getter. Falls back to default [InputActionDef] value
 func get_remap_directional_joy_motion(set_key: StringName, layer: StringName, action: StringName, player: int) -> InputActionDef.JoypadMotion:
 	var action_def := _validate_remap_target(set_key, layer, action, player)
 	if action_def == null:
 		return InputActionDef.JoypadMotion.NONE
-	var value = _remap_read("Joy", set_key, layer, action, player, null)
+	var value = _remap_read("JoyMotion", set_key, layer, action, player, null)
 	if value != null:
 		return InputActionDef.string_to_joypad_motion(value)
 	if action_def is InputActionDefStickPad:
@@ -588,7 +589,8 @@ func remap_directional_joy_button(set_key: StringName, layer: StringName, action
 		InputActionDef.joypad_button_to_string(action_def.up_joy_button), InputActionDef.joypad_button_to_string(action_def.down_joy_button),
 		InputActionDef.joypad_button_to_string(action_def.left_joy_button), InputActionDef.joypad_button_to_string(action_def.right_joy_button),
 	]
-	var values: Array = _remap_read("Joy", set_key, layer, action, player, default_values).duplicate()
+	var values = _remap_read("Joy", set_key, layer, action, player, default_values)
+	if values is Array: values = values.duplicate() # Don't dirty original
 	var new_values := [up, down, left, right]
 	for i in 4:
 		if new_values[i] == -1:
@@ -845,11 +847,9 @@ func clear_remaps(player: int) -> void:
 	if player < 0 || player > InputRelay.MAX_PLAYERS:
 		push_error("Remap player number out of range: %d" % player)
 		return
+	var prefix := "Global_" if player == 0 else "Player%d_" % player
 	for section in remap_file.get_sections().duplicate():
-		if player == 0 and section.begins_with("Global"):
-			remap_file.erase_section(section)
-			continue
-		elif section.begins_with("Player%s"%player):
+		if section.begins_with(prefix):
 			remap_file.erase_section(section)
 
 ## Polls Steam Input for all registered actions and synthesizes InputEventActions,

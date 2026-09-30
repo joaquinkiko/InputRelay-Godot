@@ -24,11 +24,16 @@ enum Direction {
 
 func _ready() -> void:
 	InputRelay.switch_current_device_type.connect(_player_switched_device)
+	InputRelay.remapper.refreshed_mappings.connect(_queue_refresh)
 	refresh()
 
 func _player_switched_device(player: int, old_device: int, new_device: int) -> void:
 	if player != player_number: return
-	refresh()
+	_queue_refresh()
+
+## Deferred, so last_device is updated before we read it
+func _queue_refresh() -> void:
+	refresh.call_deferred()
 
 ## Rebuilds the displayed texture. Call manually after applying a remap.
 func refresh() -> void:
@@ -48,6 +53,8 @@ func refresh() -> void:
 		texture = null
 		return
 	texture = device.glyph_map.get("%s_glyph"%input_name)
+	if texture == null:
+		texture = device.glyph_map.fallback_glyph
 
 ## Resolves the enum name of the currently bound input, for glyph_map property lookup
 func _resolve_input_name(device: InputRelayDevice) -> String:

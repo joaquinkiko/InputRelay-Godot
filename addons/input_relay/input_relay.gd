@@ -116,14 +116,14 @@ func _exit_tree() -> void:
 func _input(event: InputEvent) -> void:
 	# Check device assignment
 	if player_awaiting_assignment != 0:
-		if get_device(event.device).player == null:
+		if has_device(event.device) && get_device(event.device).player == null:
 			assign_device(event.device, player_awaiting_assignment)
 			player_awaiting_assignment = 0
 	# Udpdate information on last player and device input has been received from
 	# This information is important for knowing what glyphs to use for players
 	last_player_input = get_device_owner(event.device)
-	var player := get_player(last_player_input)
 	if last_player_input != 0:
+		var player := get_player(last_player_input)
 		if event.device == InputEvent.DEVICE_ID_MOUSE || event.device == InputEvent.DEVICE_ID_KEYBOARD:
 			if player.last_device != KEYBOARD_INDEX:
 				switch_current_device_type.emit(player.number, player.last_device, KEYBOARD_INDEX)
@@ -147,7 +147,8 @@ func _input(event: InputEvent) -> void:
 		var action_def := remapper.mapped_action_defs.get(event.action, null)
 		if action_def is InputActionDefDirectional:
 			_normalize_directional_action(event, action_def)
-		elif action_def is InputActionDefDigital && remapper._action_is_toggle.get(action_def, action_def.is_toggle):
+		elif action_def is InputActionDefDigital \
+		and remapper._action_is_toggle.get(event.action, action_def.is_toggle):
 			_handle_toggle_action(event, action_def)
 
 func _process(delta: float) -> void:
@@ -172,8 +173,8 @@ func _process(delta: float) -> void:
 			remapper.dispatch_proxy_axis(InputActionDef.PROXY_GYRO_Z, device.index, _smoothed_gyro_axis.z)
 
 ## Handles toggling for [InputActionDefDigital] actions
-func _handle_toggle_action(event: InputEventAction, action_def: InputActionDefDirectional) -> void:
-	var is_toggled: bool = _toggled_actions.has(action_def.action_name)
+func _handle_toggle_action(event: InputEventAction, action_def: InputActionDefDigital) -> void:
+	var is_toggled: bool = _toggled_actions.has(event.action)
 	if event.pressed:
 		# Flip the toggle value and write to array
 		is_toggled = !is_toggled
@@ -186,9 +187,9 @@ func _handle_toggle_action(event: InputEventAction, action_def: InputActionDefDi
 	# act as the real "release"
 	# Update [Input] data
 	if is_toggled:
-		Input.action_press(action_def.action)
+		Input.action_press(event.action)
 	else:
-		Input.action_release(action_def.action)
+		Input.action_release(event.action)
 	# Update event data
 	event.pressed = is_toggled
 
@@ -212,7 +213,8 @@ func _normalize_directional_action(event: InputEventAction, action_def: InputAct
 		direction = direction.normalized()
 	# Apply sensitivity
 	if action_def is InputActionDefStickPadVelocity:
-		direction *= remapper._action_sensitivities.get(action_def, action_def.sensitivity)
+		direction *= remapper._action_sensitivities.get(
+			StringName(base_name + player_suffix), action_def.sensitivity)
 	# Write normalized values back to [Input]
 	_proxy_set_action_strength(base_name + "_right" + player_suffix, maxf(direction.x, 0.0))
 	_proxy_set_action_strength(base_name + "_left" + player_suffix, maxf(-direction.x, 0.0))
@@ -267,12 +269,13 @@ func _register_device(device_id: int, device_name: String = "") -> void:
 	device_connected.emit(device_id)
 	# Check if device should be auto-assigned based on project settings
 	# By default used to assign keyboard and first connected device to player 1
-	if device_id == KEYBOARD_INDEX\
-	and ProjectSettings.get_setting("InputRelay/player_1_auto_assign_keyboard", true):
-		assign_device(device_id, 1)
-	elif !player_has_non_keyboard_devices(1)\
-	and ProjectSettings.get_setting("InputRelay/player_1_auto_assign_first_device", true):
-		assign_device(device_id, 1)
+	if device_id == KEYBOARD_INDEX:
+		if ProjectSettings.get_setting("InputRelay/player_1_auto_assign_keyboard", true):
+			assign_device(device_id, 1)
+	else:
+		if !player_has_non_keyboard_devices(1)\
+		and ProjectSettings.get_setting("InputRelay/player_1_auto_assign_first_device", true):
+			assign_device(device_id, 1)
 
 func _unregister_device(device_id: int) -> void:
 	var device := get_device(device_id)
@@ -353,11 +356,12 @@ func clear_devices(player_number: int) -> void:
 	var player := get_player(player_number)
 	if player == null:
 		push_error("Passed invalid player number for device unassignment")
+		return
 	for device in player.devices.duplicate():
 		unassign_device(device.index, player_number)
 
 func get_player(player_number: int) -> InputRelayPlayer:
-	if player_number < 0 || player_number > players.size():
+	if player_number <= 0 || player_number > players.size():
 		push_error("Trying to get player number that doesn't exist")
 		return null
 	return players[player_number - 1]
@@ -367,6 +371,12 @@ func get_device(index: int) -> InputRelayDevice:
 		if device.index == index:
 			return device
 	return null
+
+func has_device(index: int) -> bool:
+	for device in devices:
+		if device.index == index:
+			return true
+	return false
 
 func player_has_devices(player_number: int) -> bool:
 	return not get_player(player_number).devices.is_empty()
@@ -421,7 +431,7 @@ func stop_vibrating_player(player: int) -> void:
 		return
 	if player == 0:
 		for n in range(1, MAX_PLAYERS + 1):
-			for device in get_player(player).devices:
+			for device in get_player(n).devices:
 				if not device.supports_haptic(): continue
 				device.stop_vibrating()
 		return
@@ -447,7 +457,11 @@ func vibrate_player_strong(player: int) -> void:
 
 ## Returns list of devices currently not assigned to a player
 func unassigned_devices() -> Array[InputRelayDevice]:
-	return devices.filter(func(device: InputRelayDevice): device.player == null)
+	var output: Array[InputRelayDevice]
+	for device in devices:
+		if device.player == null:
+			output.append(device)
+	return output
 
 ## Returns player number that device is assigned to, or 0 if is unassigned.
 ## [member InputEvent.DEVICE_ID_MOUSE] and [member InputEvent.DEVICE_ID_KEYBOARD]
@@ -527,6 +541,7 @@ func get_player_action_set_and_layers(player_number: int) -> Array[InputActionSe
 	if action_set == null:
 		push_error("Player has no valid action set assigned")
 		return []
+	output.append(action_set)
 	for layer_key in player.current_action_layers:
 		if action_set.layers.has(layer_key):
 			output.append(action_set.layers[layer_key])
@@ -858,7 +873,11 @@ func get_player_directional_action_string(player_number: int, action_name: Strin
 		device.index == KEYBOARD_INDEX, direction)
 	if button_name.is_empty():
 		return &""
-	return device.glyph_map.get("%s_string"%button_name)
+	var output = device.glyph_map.get("%s_string"%button_name)
+	if output == null:
+		return ""
+	else:
+		return output
 
 ## Resolves a directional action's currently bound button, respecting remaps, as a [DeviceGlyphMap] property prefix.
 ## [param direction] can specify "up", "down", "left", "right", or be left blank for unspecified direction.
@@ -885,11 +904,12 @@ func _get_player_directional_action_button_name(player_number: int, action_name:
 	# ....We can now resolve the name
 	if action_def is InputActionDefStickPad || action_def is InputActionDefDirectional:
 		if is_keyboard: # Prefer mouse if available
-			if action_def is InputActionDefStickPad && action_def.mouse_motion:
+			if action_def is InputActionDefStickPad \
+			and remapper.get_remap_update_mouse_motion(player.current_action_set, layer_key, action_name, player_number):
 				if direction.is_empty():
 					return &"mouse_motion"
 				else:
-					return &"mouse_%s"%direction
+					return &"mouse_motion_%s"%direction
 			else: # Fallback to digital input
 				var index: int
 				match direction:
@@ -920,10 +940,7 @@ func _get_player_directional_action_button_name(player_number: int, action_name:
 					_: index = 0 # Up is default for unspecified
 				var button := remapper.get_remap_directional_joy_button(player.current_action_set,layer_key, action_name, player_number)[index]
 				if button != InputActionDef.JoypadButton.NONE:
-					if direction.is_empty():
-						return InputActionDef.joypad_button_to_string(button).to_lower()
-					else:
-						return "%s_%s"%[InputActionDef.joypad_button_to_string(button).to_lower(), direction]
+					return InputActionDef.joypad_button_to_string(button).to_lower()
 	return "" # Couldn't resolve
 
 ## Returns the display glyph for last device, used by player.

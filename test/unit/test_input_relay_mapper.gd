@@ -55,6 +55,7 @@ func before_each() -> void:
 	mapper = InputRelayMapper.new()
 	mapper.remap_file = ConfigFile.new()
 	InputMap.add_action("test_proxy_action")
+	Input.action_release("test_proxy_action")
 	InputMap.action_set_deadzone("test_proxy_action", 0.2)
 
 func after_each() -> void:
@@ -68,8 +69,8 @@ func after_each() -> void:
 	ProjectSettings.set_setting("InputRelay/auto_save_load_remaps", saved_auto_save)
 	if FileAccess.file_exists(REMAP_PATH):
 		DirAccess.remove_absolute(REMAP_PATH)
-	InputMap.erase_action("test_proxy_action")
 	Input.action_release("test_proxy_action")
+	InputMap.erase_action("test_proxy_action")
 
 func _build_action_set() -> InputActionSet:
 	var action_set := InputActionSet.new()
@@ -125,8 +126,15 @@ func _has_joy_button(action: StringName, button: JoyButton, device_id: int) -> b
 	return false
 
 func _has_joy_axis(action: StringName, axis: int, value: float) -> bool:
+	if axis > JoyAxis.JOY_AXIS_MAX: return _has_proxy_axis(action, axis, value)
 	for event in InputMap.action_get_events(action):
 		if event is InputEventJoypadMotion and int(event.axis) == axis and is_equal_approx(event.axis_value, value):
+			return true
+	return false
+
+func _has_proxy_axis(action: StringName, axis: int, sign_value: float) -> bool:
+	for binding in mapper._proxy_axis_bindings:
+		if binding["action"] == action and binding["axis"] == axis and is_equal_approx(binding["sign"], sign_value):
 			return true
 	return false
 
@@ -231,8 +239,9 @@ func test_stick_pad_events_are_not_duplicated() -> void:
 	assert_eq(keys, 1)
 
 func test_stick_pad_applies_deadzone() -> void:
+	mapper.remap_update_deadzone(SET_KEY, &"", &"test_move", 1, 0.35)
 	mapper.refresh_mappings()
-	assert_almost_eq(InputMap.action_get_deadzone(&"test_move_left1"), 0.10, 0.0001)
+	assert_almost_eq(InputMap.action_get_deadzone(&"test_move_left1"), 0.35, 0.0001)
 
 func test_invert_x_flips_horizontal_sign() -> void:
 	mapper.remap_update_invert_x(SET_KEY, &"", &"test_move", 1, true)

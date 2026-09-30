@@ -27,22 +27,31 @@ enum MouseModes {
 ## Available actions for this set, sorted by name
 @export var actions: Dictionary[StringName, InputActionDef]
 
-func _init() -> void:
+func sanitize_keys(is_layer := false) -> void:
 	# Enfoce no '+' and lowercase for keys for compatibility with SteamInput setup
-	for key: StringName in actions.keys():
-		if String(key) != String(key).to_lower():
+	for key: StringName in actions:
+		if key != String(key).to_lower():
 			push_error("Action Names should be lowercase!")
-			key = key.to_lower()
-		if String(key) != String(key).replace('+', ' '):
+			actions[StringName(key.to_lower())] = actions[key]
+			actions.erase(key)
+	for key: StringName in actions:
+		if key != String(key).replace('+', ' '):
 			push_error("Action Names should not include '+' character, replacing with ' '!")
-			key = key.replace('+', ' ')
-	for key: StringName in layers.keys():
-		if String(key) != String(key).to_lower():
+			actions[StringName(key.replace('+', ' '))] = actions[key]
+			actions.erase(key)
+	for key: StringName in layers:
+		if key != String(key).to_lower():
 			push_error("Action layers should be lowercase!")
-			key = key.to_lower()
-		if String(key) != String(key).replace('+', ' '):
+			layers[StringName(key.to_lower())] = layers[key]
+			layers.erase(key)
+	for key: StringName in layers:
+		if key != String(key).replace('+', ' '):
 			push_error("Action layers should not include '+' character, replacing with ' '!")
-			key = key.replace('+', ' ')
+			layers[StringName(key.replace('+', ' '))] = layers[key]
+			layers.erase(key)
+	if !is_layer: # Prevents accidental recursive loop
+		for key in layers:
+			layers[key].sanitize_keys(true)
 
 func apply_mouse_mode(using_joy: bool) -> void:
 	var mode: Input.MouseMode

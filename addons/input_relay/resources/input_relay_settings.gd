@@ -32,6 +32,7 @@ func _init() -> void:
 		if String(key) != String(key).replace('+', ' '):
 			push_error("Action sets should not include '+' character, replacing with ' '!")
 			key = key.replace('+', ' ')
+		action_sets[key].sanitize_keys()
 
 func _prompt_export_vdf() -> void:
 	if not Engine.is_editor_hint():
