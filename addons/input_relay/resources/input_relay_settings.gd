@@ -37,16 +37,16 @@ func _init() -> void:
 func _prompt_export_vdf() -> void:
 	if not Engine.is_editor_hint():
 		return
-	var dialog := EditorFileDialog.new()
-	dialog.file_mode = EditorFileDialog.FILE_MODE_SAVE_FILE
-	dialog.access = EditorFileDialog.ACCESS_FILESYSTEM
-	dialog.add_filter("*.vdf", "Steam Input Manifest")
-	dialog.current_file = "in_game_actions.vdf"
-	dialog.file_selected.connect(_write_vdf_file)
-	dialog.file_selected.connect(func(_path): dialog.queue_free())
-	dialog.canceled.connect(dialog.queue_free)
-	EditorInterface.get_base_control().add_child(dialog)
-	dialog.popup_centered_ratio()
+	var dialog := ClassDB.instantiate("EditorFileDialog")
+	dialog.set("file_mode", 4)
+	dialog.set("access", 2)
+	dialog.call("add_filter", "*.vdf", "Steam Input Manifest")
+	dialog.set("current_file", "in_game_actions.vdf")
+	dialog.connect("file_selected", _write_vdf_file)
+	dialog.connect("file_selected", func(_path): dialog.queue_free())
+	dialog.connect("canceled", dialog.queue_free)
+	Engine.get_singleton("EditorInterface").get_base_control().add_child(dialog)
+	dialog.call("popup_centered_ratio")
 
 func _write_vdf_file(path: String) -> void:
 	var file := FileAccess.open(path, FileAccess.WRITE)
