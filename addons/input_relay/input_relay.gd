@@ -334,6 +334,8 @@ func assign_device(device_id: int, player_number: int) -> void:
 	# Setup the steam input connections for this device
 	if device.is_steam_managed():
 		_steam_activate_player_action_set(player.number)
+	if player.last_device == -1:
+		player.last_device = device_id
 
 func unassign_device(device_id: int, player_number: int) -> void:
 	var device := get_device(device_id)
@@ -352,6 +354,11 @@ func unassign_device(device_id: int, player_number: int) -> void:
 		device.set_light(Color.WHITE)
 	remapper.refresh_mappings()
 	remapper.refresh_translations()
+	if player.last_device == device_id:
+		player.last_device = -1
+		for other_device in player.devices:
+			player.last_device = other_device.index
+			break # Only assign to first found (if any)
 
 func clear_devices(player_number: int) -> void:
 	var player := get_player(player_number)
